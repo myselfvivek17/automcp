@@ -1,6 +1,6 @@
 import time
 import requests
-from typing import Optional
+from typing import Optional, Any
 from app.providers.base import BaseAIProvider
 
 
@@ -41,9 +41,21 @@ class WatsonxProvider(BaseAIProvider):
             return ""
         try:
             token = self._get_iam_token()
-            model_id = kwargs.get("model_id", "meta-llama/llama-3-8b-instruct")
+            model_id = kwargs.get("model_id", "ibm/granite-13b-chat-v2")
 
-            # Chat API — messages format as per IBM watsonx.ai docs
+            # Try Chat API first (newer endpoint)
+            result = self._try_chat(token, model_id, prompt, **kwargs)
+            if result:
+                return result
+
+            # Fall back to Text Generation API
+            return self._try_text_generation(token, model_id, prompt, **kwargs)
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+    def _try_chat(self, token: str, model_id: str, prompt: str, **kwargs) -> Optional[str]:
+        """Try /ml/v1/text/chat endpoint."""
+        try:
             messages = [
                 {
                     "role": "system",
@@ -54,13 +66,9 @@ class WatsonxProvider(BaseAIProvider):
                     "content": [{"type": "text", "text": prompt}],
                 },
             ]
-
             resp = requests.post(
                 f"{self.base_url}/ml/v1/text/chat?version={self.CHAT_API_VERSION}",
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json",
-                },
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                 json={
                     "model_id": model_id,
                     "project_id": self.project_id,
@@ -69,7 +77,32 @@ class WatsonxProvider(BaseAIProvider):
                 },
                 timeout=90,
             )
+            if resp.status_code == 404:
+                return None  # endpoint not available, fall through
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
-        except Exception as e:
-            return f"Error: {str(e)}"
+        except requests.HTTPError:
+            return None
+        except Exception:
+            return None
+
+    def _try_text_generation(self, token: str, model_id: str, prompt: str, **kwargs) -> str:
+        """Fall back to /ml/v1/text/generation endpoint."""
+        system = "You are an expert API developer and MCP server code generator. Return exactly what is requested with no extra explanation.\n\n"
+        full_prompt = system + prompt
+        resp = requests.post(
+            f"{self.base_url}/ml/v1/text/generation?version=2023-05-29",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json={
+                "input": full_prompt,
+                "model_id": model_id,
+                "project_id": self.project_id,
+                "parameters": {
+                    "max_new_tokens": kwargs.get("max_tokens", 2000),
+                    "temperature": kwargs.get("temperature", 0.3),
+                },
+            },
+            timeout=90,
+        )
+        resp.raise_for_status()
+        return resp.json().get("results", [{}])[0].get("generated_text", "")
