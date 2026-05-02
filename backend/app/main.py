@@ -35,15 +35,21 @@ async def lifespan(app: FastAPI):
     
     try:
         # Initialize database connection
-        await init_database()
-        logger.info("Database initialized")
-        
+        try:
+            await init_database()
+            logger.info("Database initialized")
+        except Exception as e:
+            logger.warning("Database unavailable, running without it", error=str(e))
+
         # Initialize Redis connection
-        await init_redis()
-        logger.info("Redis initialized")
-        
+        try:
+            await init_redis()
+            logger.info("Redis initialized")
+        except Exception as e:
+            logger.warning("Redis unavailable, running without it", error=str(e))
+
         logger.info("Application startup complete")
-        
+
         yield
         
     finally:
