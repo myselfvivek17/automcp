@@ -123,11 +123,21 @@ class InputParserAgent(BaseAgent):
             return {"format": "swagger", "raw": content}
     
     async def _parse_text(self, content: str) -> Dict[str, Any]:
-        """Parse plain text description"""
+        """Parse plain text description — extract base URL if present"""
+        import re
+        servers = []
+        url_match = re.search(r'https?://[^\s,\n]+', content)
+        if url_match:
+            from urllib.parse import urlparse
+            raw = url_match.group(0).rstrip('.,;:)')
+            parsed = urlparse(raw)
+            base_url = f"{parsed.scheme}://{parsed.netloc}"
+            servers = [{"url": base_url}]
         return {
             "format": "text",
             "description": content,
-            "endpoints": []  # Will be extracted by next agent
+            "servers": servers,
+            "endpoints": [],
         }
 
 
@@ -166,9 +176,12 @@ class SchemaExtractorAgent(BaseAgent):
     
     async def _extract_endpoints(self, parsed_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract endpoint information"""
+        if parsed_data.get("format") == "text":
+            return self._extract_endpoints_from_text(parsed_data.get("description", ""))
+
         endpoints = []
         paths = parsed_data.get("paths", {})
-        
+
         for path, methods in paths.items():
             for method, details in methods.items():
                 if method.upper() in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
@@ -181,7 +194,50 @@ class SchemaExtractorAgent(BaseAgent):
                         "requestBody": details.get("requestBody", {}),
                         "responses": details.get("responses", {})
                     })
-        
+
+        return endpoints
+
+    def _extract_endpoints_from_text(self, text: str) -> List[Dict[str, Any]]:
+        """Extract endpoints from plain text using regex (METHOD /path patterns)"""
+        import re
+        endpoints = []
+        seen = set()
+        pattern = re.compile(
+            r'\b(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s\n—\-–]*)',
+            re.IGNORECASE,
+        )
+        for match in pattern.finditer(text):
+            method = match.group(1).upper()
+            raw_path = match.group(2).rstrip('.,;:)')
+
+            # Split query string from path
+            path_part, _, qs = raw_path.partition('?')
+            parameters = []
+            # Extract path params like {city}
+            for pp in re.findall(r'\{(\w+)\}', path_part):
+                parameters.append({"name": pp, "in": "path", "required": True, "schema": {"type": "string"}})
+            # Extract query params like ?city={city} or ?city=value
+            for qp in re.findall(r'(\w+)=', qs):
+                parameters.append({"name": qp, "in": "query", "required": False, "schema": {"type": "string"}})
+
+            key = f"{method}:{path_part}"
+            if key in seen:
+                continue
+            seen.add(key)
+
+            # Grab the rest of the line as summary
+            line_end = text.find('\n', match.start())
+            line = text[match.start():line_end if line_end > 0 else match.start() + 120].strip()
+
+            endpoints.append({
+                "path": path_part,
+                "method": method,
+                "summary": line,
+                "description": line,
+                "parameters": parameters,
+                "requestBody": {} if method not in ("POST", "PUT", "PATCH") else {"content": {}},
+                "responses": {"200": {"description": "Success"}},
+            })
         return endpoints
     
     async def _extract_schemas(self, parsed_data: Dict[str, Any]) -> Dict[str, Any]:
