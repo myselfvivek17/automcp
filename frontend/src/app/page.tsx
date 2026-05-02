@@ -1,176 +1,117 @@
 import Link from 'next/link';
 
+const AGENTS = [
+  { num: '01', name: 'Input Parser', desc: 'Normalizes OpenAPI 3.0, Swagger 2.0, and plain text' },
+  { num: '02', name: 'Schema Extractor', desc: 'Extracts endpoints, parameters, and schemas' },
+  { num: '03', name: 'Endpoint Mapper', desc: 'Maps each endpoint to an MCP tool definition' },
+  { num: '04', name: 'Auth Analyzer', desc: 'Detects authentication type and configures headers' },
+  { num: '05', name: 'Code Generator', desc: 'Generates secure Python or TypeScript MCP server code' },
+];
+
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <h1 className="text-6xl font-bold text-gray-900 mb-4">
-            🤖 AutoMCP
+    <div className="min-h-screen bg-white">
+      {/* Hero */}
+      <div className="bg-slate-900 px-6 py-24 md:py-32">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs font-semibold tracking-widest uppercase text-blue-400 mb-8">
+            Powered by IBM watsonx.ai Granite
+          </p>
+          <h1 className="text-6xl md:text-8xl font-black text-slate-50 tracking-tight leading-none mb-6">
+            API to MCP<br className="hidden md:block" /> in seconds.
           </h1>
-          <p className="text-2xl text-gray-600 mb-8">
-            Automatically Generate MCP Server Code from API Specifications
+          <p className="text-xl text-slate-400 max-w-2xl mb-10">
+            Paste any OpenAPI spec. Watch 5 AI agents transform it into a production-ready MCP server, live.
           </p>
-          <p className="text-lg text-gray-500 max-w-3xl mx-auto mb-12">
-            Transform any API into a Model Context Protocol server with our intelligent multi-agent system.
-            Support for OpenAPI, Swagger, and natural language descriptions.
-          </p>
-          
-          <Link
-            href="/generate"
-            className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-xl font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
-          >
-            🚀 Start Generating
-          </Link>
-
-          <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium text-xs border border-blue-200">
-              Powered by IBM watsonx.ai Granite
+          <div className="flex items-center gap-6 flex-wrap">
+            <Link
+              href="/generate"
+              className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-500 transition-colors"
+            >
+              Start Generating
+            </Link>
+            <span className="text-sm text-slate-500">
+              No sign-up required · Python and TypeScript output
             </span>
-            <span className="text-gray-300 hidden sm:inline">·</span>
-            <span className="text-xs text-gray-500">5-agent pipeline · Real-time streaming · Python & TypeScript</span>
           </div>
         </div>
+      </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-            <div className="text-4xl mb-4">🔄</div>
-            <h3 className="text-xl font-semibold mb-2">Multi-Agent Pipeline</h3>
-            <p className="text-gray-600">
-              5 specialized agents work together: Input Parser, Schema Extractor, Endpoint Mapper, Auth Analyzer, and Code Generator
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-            <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-xl font-semibold mb-2">Real-Time Visualization</h3>
-            <p className="text-gray-600">
-              Watch agents work in real-time with live progress updates, status messages, and pipeline visualization
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-            <div className="text-4xl mb-4">📝</div>
-            <h3 className="text-xl font-semibold mb-2">Multiple Input Formats</h3>
-            <p className="text-gray-600">
-              Support for OpenAPI 3.0, Swagger 2.0, and plain text descriptions of your API
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-            <div className="text-4xl mb-4">💻</div>
-            <h3 className="text-xl font-semibold mb-2">Multiple Languages</h3>
-            <p className="text-gray-600">
-              Generate production-ready code in Python or TypeScript with proper async/await patterns
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-            <div className="text-4xl mb-4">🎨</div>
-            <h3 className="text-xl font-semibold mb-2">Monaco Editor</h3>
-            <p className="text-gray-600">
-              Professional code editor with syntax highlighting, line numbers, and dark theme
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-            <div className="text-4xl mb-4">🤖</div>
-            <h3 className="text-xl font-semibold mb-2">AI-Powered (Optional)</h3>
-            <p className="text-gray-600">
-              Works without API keys using smart templates, or enhance with IBM Watsonx, OpenAI, Claude, or Gemini
-            </p>
+      {/* 5-Agent Pipeline */}
+      <div className="px-6 py-20 border-b border-slate-100">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-12">
+            5-Agent Pipeline
+          </p>
+          <div>
+            {AGENTS.map((agent, i) => (
+              <div
+                key={i}
+                className="flex items-baseline gap-8 py-5 border-t border-slate-100 group"
+              >
+                <span className="text-3xl font-black text-slate-200 tabular-nums w-14 flex-shrink-0 group-hover:text-blue-500 transition-colors">
+                  {agent.num}
+                </span>
+                <div className="flex items-baseline gap-6 flex-wrap min-w-0">
+                  <span className="text-lg font-semibold text-slate-900 whitespace-nowrap">{agent.name}</span>
+                  <span className="text-slate-500 text-sm">{agent.desc}</span>
+                </div>
+              </div>
+            ))}
+            <div className="border-t border-slate-100" />
           </div>
         </div>
+      </div>
 
-        {/* How It Works */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">How It Works</h2>
-          
-          <div className="space-y-6">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">
-                1
+      {/* How It Works */}
+      <div className="px-6 py-20 border-b border-slate-100">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-12">
+            How It Works
+          </p>
+          <div className="grid md:grid-cols-3 gap-12">
+            {[
+              {
+                n: '1',
+                title: 'Paste your spec',
+                body: 'OpenAPI 3.0, Swagger 2.0, or plain text. Click Load Sample to see it in action.',
+              },
+              {
+                n: '2',
+                title: 'Watch agents work',
+                body: 'Each agent runs in sequence with real-time progress updates over WebSocket.',
+              },
+              {
+                n: '3',
+                title: 'Download and run',
+                body: 'Get a complete MCP server with error handling, auth config, and a one-click setup guide.',
+              },
+            ].map(({ n, title, body }) => (
+              <div key={n}>
+                <p className="text-5xl font-black text-slate-100 mb-4">{n}</p>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{body}</p>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Input Your API Specification</h3>
-                <p className="text-gray-600">
-                  Paste your OpenAPI/Swagger spec, or describe your API in plain text. Load our sample to see it in action.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">
-                2
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Watch Agents Work</h3>
-                <p className="text-gray-600">
-                  Our multi-agent pipeline processes your spec: parsing input, extracting schemas, mapping endpoints, analyzing auth, and generating code.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">
-                3
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Get Production-Ready Code</h3>
-                <p className="text-gray-600">
-                  Download your complete MCP server code with proper error handling, authentication, and documentation.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Tech Stack */}
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Built With Modern Tech</h2>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Backend</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li>✅ FastAPI with async/await</li>
-                <li>✅ WebSocket for real-time updates</li>
-                <li>✅ Multi-agent architecture</li>
-                <li>✅ OpenAPI/Swagger parsing</li>
-                <li>✅ Multiple AI provider support</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Frontend</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li>✅ Next.js 14 with App Router</li>
-                <li>✅ Monaco Editor integration</li>
-                <li>✅ Real-time WebSocket client</li>
-                <li>✅ Tailwind CSS styling</li>
-                <li>✅ TypeScript for type safety</li>
-              </ul>
-            </div>
+      {/* Bottom CTA */}
+      <div className="bg-slate-900 px-6 py-20">
+        <div className="max-w-4xl mx-auto flex items-center justify-between flex-wrap gap-6">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-50 mb-2">Ready to generate?</h2>
+            <p className="text-slate-400 text-sm">No sign-up · Works without API keys · Open source</p>
           </div>
-        </div>
-
-        {/* CTA */}
-        <div className="text-center mt-16">
           <Link
             href="/generate"
-            className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-12 py-5 rounded-lg text-2xl font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-500 transition-colors whitespace-nowrap"
           >
-            Try It Now - It's Free! 🎉
+            Open Generator
           </Link>
-          <p className="text-gray-500 mt-4">
-            No sign-up required • Works without API keys • Open source
-          </p>
         </div>
       </div>
     </div>
   );
 }
-
-// Made with Bob

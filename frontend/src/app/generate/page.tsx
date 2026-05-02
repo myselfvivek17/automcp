@@ -384,14 +384,14 @@ export default function GeneratePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🤖 AutoMCP Generator
+            AutoMCP Generator
           </h1>
           <p className="text-gray-600">
-            Generate MCP server code from API specifications with real-time agent visualization
+            Generate MCP server code from any API specification with real-time agent visualization
           </p>
         </div>
 
@@ -493,7 +493,7 @@ export default function GeneratePage() {
                 disabled={generating || !content}
                 className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {generating ? '⚙️ Generating...' : '🚀 Generate MCP Server'}
+                {generating ? 'Generating...' : 'Generate MCP Server'}
               </button>
               
               {generating && (
@@ -616,4 +616,3 @@ export default function GeneratePage() {
   );
 }
 
-// Made with Bob
