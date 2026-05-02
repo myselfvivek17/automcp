@@ -383,20 +383,21 @@ export default function GeneratePage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Input Type</label>
                   <select value={inputType} onChange={(e) => setInputType(e.target.value)} className={INPUT_CLS}>
                     <option value="text">Plain Text</option>
-                    <option value="openapi">OpenAPI 3.0</option>
-                    <option value="swagger">Swagger 2.0</option>
+                    <option value="url">URL (API Docs Page)</option>
+                    <option value="openapi">OpenAPI 3.0 JSON</option>
+                    <option value="swagger">Swagger 2.0 JSON</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Output Language</label>
-                  <select value={language} onChange={(e) => setLanguage(e.target.value)} className={INPUT_CLS}>
+                  <select title="Output language" value={language} onChange={(e) => setLanguage(e.target.value)} className={INPUT_CLS}>
                     <option value="python">Python</option>
                     <option value="typescript">TypeScript</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">AI Provider (Optional)</label>
-                  <select value={provider} onChange={(e) => setProvider(e.target.value)} className={INPUT_CLS}>
+                  <select title="AI provider" value={provider} onChange={(e) => setProvider(e.target.value)} className={INPUT_CLS}>
                     <option value="watsonx">IBM Watsonx.ai</option>
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic Claude</option>
@@ -419,17 +420,40 @@ export default function GeneratePage() {
 
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">API Specification</h2>
-                <button onClick={loadSample} className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
-                  Load Sample
-                </button>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
+                  {inputType === 'url' ? 'API Docs URL' : 'API Specification'}
+                </h2>
+                {inputType !== 'url' && (
+                  <button type="button" onClick={loadSample} className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                    Load Sample
+                  </button>
+                )}
               </div>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={`Enter your ${inputType} specification here...`}
-                className={`${INPUT_CLS} h-64 font-mono text-sm`}
-              />
+              {inputType === 'url' ? (
+                <div className="space-y-3">
+                  <input
+                    type="url"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="https://api.example.com/docs or https://petstore.swagger.io/v2/swagger.json"
+                    className={INPUT_CLS}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    Paste any URL containing API documentation — HTML docs pages, raw OpenAPI/Swagger JSON, or README files. The AI will extract endpoints automatically.
+                  </p>
+                </div>
+              ) : (
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={
+                    inputType === 'openapi' ? 'Paste OpenAPI 3.0 JSON here...' :
+                    inputType === 'swagger' ? 'Paste Swagger 2.0 JSON here...' :
+                    'Describe your API endpoints, e.g.:\n\nBase URL: https://api.example.com\n\nGET /users — list all users\nPOST /users — create a user\nGET /users/{id} — get user by ID'
+                  }
+                  className={`${INPUT_CLS} h-64 font-mono text-sm`}
+                />
+              )}
             </div>
 
             <div className="flex gap-4">

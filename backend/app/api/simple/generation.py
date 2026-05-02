@@ -130,6 +130,11 @@ def _build_provider_service(req: GenerateRequest) -> Optional[ProviderService]:
         return None
 
     try:
-        return ProviderService(provider=provider, api_key=api_key)
+        kwargs: dict = {}
+        if provider == "watsonx":
+            if settings.watsonx_project_id:
+                kwargs["project_id"] = settings.watsonx_project_id
+            kwargs["base_url"] = settings.watsonx_url
+        return ProviderService(provider=provider, api_key=api_key, **kwargs)
     except Exception:
         return None
