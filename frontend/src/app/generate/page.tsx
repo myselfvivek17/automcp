@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { loadAgentConfigs } from '@/lib/agent-config';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
@@ -62,46 +61,46 @@ function GenerationInsights({ agentUpdates }: { agentUpdates: AgentUpdate[] }) {
   const tools: any[] = completed.find(u => u.agent_name === 'Endpoint Mapper')?.data?.mcp_tools ?? [];
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
       >
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">How it was built</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">How it was built</h2>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
             {endpointCount} endpoints discovered → {toolCount} MCP tools · Auth: {authType}
           </p>
         </div>
-        <span className="text-gray-400 text-lg ml-4">{open ? '▲' : '▼'}</span>
+        <span className="text-gray-400 dark:text-slate-500 text-lg ml-4">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
-        <div className="border-t border-gray-100 p-5 space-y-5">
+        <div className="border-t border-gray-100 dark:border-slate-700 p-5 space-y-5">
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Endpoints extracted ({endpointCount})</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Endpoints extracted ({endpointCount})</h3>
             <div className="space-y-1.5">
               {endpoints.map((ep: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <span className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
-                    ep.method === 'GET' ? 'bg-green-100 text-green-700' :
-                    ep.method === 'POST' ? 'bg-blue-100 text-blue-700' :
-                    ep.method === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
-                    ep.method === 'DELETE' ? 'bg-red-100 text-red-700' :
-                    'bg-gray-100 text-gray-700'
+                    ep.method === 'GET' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                    ep.method === 'POST' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                    ep.method === 'PUT' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                    ep.method === 'DELETE' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                    'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300'
                   }`}>{ep.method}</span>
-                  <code className="text-gray-600 text-xs">{ep.path}</code>
-                  {ep.summary && <span className="text-gray-400 text-xs">— {ep.summary}</span>}
+                  <code className="text-gray-600 dark:text-slate-400 text-xs">{ep.path}</code>
+                  {ep.summary && <span className="text-gray-400 dark:text-slate-500 text-xs">— {ep.summary}</span>}
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">MCP tools generated ({toolCount})</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">MCP tools generated ({toolCount})</h3>
             <div className="flex flex-wrap gap-2">
               {tools.map((t: any, i: number) => (
-                <span key={i} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-mono">
+                <span key={i} className="px-2 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded text-xs font-mono">
                   {t.name}
                 </span>
               ))}
@@ -109,8 +108,8 @@ function GenerationInsights({ agentUpdates }: { agentUpdates: AgentUpdate[] }) {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-1">Authentication detected</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Authentication detected</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400">
               Type: <strong>{authType}</strong> · Location: header · Scheme: Bearer
             </p>
           </div>
@@ -158,50 +157,52 @@ function SetupInstructions({ language }: { language: string }) {
 }`;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-      <h2 className="text-xl font-semibold">Setup & Configuration</h2>
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 space-y-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Setup & Configuration</h2>
 
       <div>
-        <h3 className="font-medium text-gray-800 mb-2">1. Install dependencies</h3>
+        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">1. Install dependencies</h3>
         <CodeBlock code={installCmd} />
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 mb-2">2. Save the generated code</h3>
-        <p className="text-sm text-gray-600 mb-2">
-          Download the file above and save it as <code className="bg-gray-100 px-1 rounded font-mono text-sm">{filename}</code>.
+        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">2. Save the generated code</h3>
+        <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
+          Download the file above and save it as <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-300 px-1 rounded font-mono text-sm">{filename}</code>.
         </p>
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 mb-2">3. Test the server</h3>
+        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">3. Test the server</h3>
         <CodeBlock code={runCmd} />
-        <p className="text-xs text-gray-500 mt-1">The server communicates over stdio — it won't print anything on startup unless there's an error.</p>
+        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">The server communicates over stdio — it won't print anything on startup unless there's an error.</p>
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 mb-2">4. Add to Claude Desktop</h3>
-        <p className="text-sm text-gray-600 mb-2">
-          Edit <code className="bg-gray-100 px-1 rounded font-mono text-sm">~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code className="bg-gray-100 px-1 rounded font-mono text-sm">%APPDATA%\Claude\claude_desktop_config.json</code> (Windows):
+        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">4. Add to Claude Desktop</h3>
+        <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
+          Edit <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-300 px-1 rounded font-mono text-sm">~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-300 px-1 rounded font-mono text-sm">%APPDATA%\Claude\claude_desktop_config.json</code> (Windows):
         </p>
         <CodeBlock code={claudeConfig} />
-        <p className="text-xs text-gray-500 mt-1">Restart Claude Desktop after saving.</p>
+        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Restart Claude Desktop after saving.</p>
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 mb-2">5. Add to Cursor</h3>
+        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">5. Add to Cursor</h3>
         <CodeBlock code={cursorConfig} />
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm font-medium text-blue-800 mb-1">Environment variables</p>
-        <p className="text-sm text-blue-700">
-          If your API requires authentication, set the API key as an environment variable and update the <code className="bg-blue-100 px-1 rounded font-mono text-xs">headers</code> dict in the generated code before running.
+      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+        <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Environment variables</p>
+        <p className="text-sm text-blue-700 dark:text-blue-400">
+          If your API requires authentication, set the API key as an environment variable and update the <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono text-xs">headers</code> dict in the generated code before running.
         </p>
       </div>
     </div>
   );
 }
+
+const INPUT_CLS = "w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100";
 
 export default function GeneratePage() {
   const [inputType, setInputType] = useState('text');
@@ -218,7 +219,6 @@ export default function GeneratePage() {
 
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Sample OpenAPI spec for testing
   const sampleOpenAPI = `{
   "openapi": "3.0.0",
   "info": {
@@ -342,9 +342,7 @@ export default function GeneratePage() {
   };
 
   const handleStop = () => {
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
+    if (wsRef.current) wsRef.current.close();
     setGenerating(false);
   };
 
@@ -363,169 +361,110 @@ export default function GeneratePage() {
     URL.revokeObjectURL(url);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'started': return 'text-blue-600';
-      case 'processing': return 'text-yellow-600';
-      case 'completed': return 'text-green-600';
-      case 'error': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'started': return '🚀';
-      case 'processing': return '⚙️';
-      case 'completed': return '✅';
-      case 'error': return '❌';
-      default: return '⏳';
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-50 mb-2">
             AutoMCP Generator
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-slate-400">
             Generate MCP server code from any API specification with real-time agent visualization
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel - Input Configuration */}
+          {/* Left Panel */}
           <div className="space-y-6">
-            {/* Input Type Selection */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Input Configuration</h2>
-              
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">Input Configuration</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Input Type
-                  </label>
-                  <select
-                    value={inputType}
-                    onChange={(e) => setInputType(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Input Type</label>
+                  <select value={inputType} onChange={(e) => setInputType(e.target.value)} className={INPUT_CLS}>
                     <option value="text">Plain Text</option>
                     <option value="openapi">OpenAPI 3.0</option>
                     <option value="swagger">Swagger 2.0</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Output Language
-                  </label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Output Language</label>
+                  <select value={language} onChange={(e) => setLanguage(e.target.value)} className={INPUT_CLS}>
                     <option value="python">Python</option>
                     <option value="typescript">TypeScript</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    AI Provider (Optional)
-                  </label>
-                  <select
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">AI Provider (Optional)</label>
+                  <select value={provider} onChange={(e) => setProvider(e.target.value)} className={INPUT_CLS}>
                     <option value="watsonx">IBM Watsonx.ai</option>
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic Claude</option>
                     <option value="google">Google Gemini</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    API Key (Optional)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">API Key (Optional)</label>
                   <input
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="Leave empty for mock generation"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={INPUT_CLS}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Works without API key using mock responses
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Works without API key using mock responses</p>
                 </div>
               </div>
             </div>
 
-            {/* API Specification Input */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">API Specification</h2>
-                <button
-                  onClick={loadSample}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">API Specification</h2>
+                <button onClick={loadSample} className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
                   Load Sample
                 </button>
               </div>
-              
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={`Enter your ${inputType} specification here...`}
-                className="w-full h-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                className={`${INPUT_CLS} h-64 font-mono text-sm`}
               />
             </div>
 
-            {/* Generate Button */}
             <div className="flex gap-4">
               <button
                 onClick={handleGenerate}
                 disabled={generating || !content}
-                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
               >
                 {generating ? 'Generating...' : 'Generate MCP Server'}
               </button>
-              
               {generating && (
-                <button
-                  onClick={handleStop}
-                  className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
-                >
+                <button onClick={handleStop} className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
                   Stop
                 </button>
               )}
             </div>
           </div>
 
-          {/* Right Panel - Agent Visualization & Output */}
+          {/* Right Panel */}
           <div className="space-y-6">
-            {/* Agent Pipeline Visualization */}
             {(generating || agentUpdates.length > 0) && (
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Agent Pipeline</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Agent Pipeline</h2>
                   {!generating && overallProgress === 100 && (
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">Complete</span>
+                    <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2 py-1 rounded-full">Complete</span>
                   )}
                 </div>
 
-                {/* Overall Progress */}
                 <div className="mb-5">
-                  <div className="flex justify-between text-sm text-gray-600 mb-1.5">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400 mb-1.5">
                     <span>Overall Progress</span>
                     <span className="font-medium">{Math.round(overallProgress)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5">
                     <div
                       className={`bg-blue-600 h-2.5 rounded-full transition-all duration-500 ${generating ? 'animate-pulse' : ''}`}
                       style={{ width: `${overallProgress}%` }}
@@ -533,8 +472,7 @@ export default function GeneratePage() {
                   </div>
                 </div>
 
-                {/* Agent Timeline */}
-                <div className="space-y-0 divide-y divide-gray-50 max-h-72 overflow-y-auto">
+                <div className="space-y-0 divide-y divide-gray-50 dark:divide-slate-700 max-h-72 overflow-y-auto">
                   {agentUpdates.filter(u => u.agent_name !== 'Pipeline').map((update, index) => (
                     <div key={index} className="flex items-start gap-3 py-2.5">
                       <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${
@@ -546,11 +484,11 @@ export default function GeneratePage() {
                         {update.status === 'completed' ? '✓' : update.status === 'error' ? '✗' : '·'}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 leading-tight">{update.agent_name}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-slate-200 leading-tight">{update.agent_name}</p>
                         <p className={`text-xs mt-0.5 truncate ${
-                          update.status === 'completed' ? 'text-green-600' :
-                          update.status === 'error' ? 'text-red-600' :
-                          'text-amber-600'
+                          update.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                          update.status === 'error' ? 'text-red-600 dark:text-red-400' :
+                          'text-amber-600 dark:text-amber-400'
                         }`}>{update.message}</p>
                       </div>
                     </div>
@@ -559,21 +497,16 @@ export default function GeneratePage() {
               </div>
             )}
 
-            {/* Generated Code */}
             {generatedCode && (
               <>
-                <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">Generated Code</h2>
-                    <button
-                      onClick={downloadCode}
-                      className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                    >
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Generated Code</h2>
+                    <button onClick={downloadCode} className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
                       Download
                     </button>
                   </div>
-
-                  <div className="border border-gray-300 rounded-lg overflow-hidden">
+                  <div className="border border-gray-300 dark:border-slate-600 rounded-lg overflow-hidden">
                     <MonacoEditor
                       height="500px"
                       language={language === 'python' ? 'python' : 'typescript'}
@@ -590,21 +523,16 @@ export default function GeneratePage() {
                     />
                   </div>
                 </div>
-
-                {/* Setup & Run Instructions */}
                 <GenerationInsights agentUpdates={agentUpdates} />
                 <SetupInstructions language={language} />
               </>
             )}
 
-            {/* Placeholder when not generating */}
             {!generating && !generatedCode && (
-              <div className="bg-white rounded-lg shadow-md p-12 text-center">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-12 text-center">
                 <div className="text-6xl mb-4">🤖</div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  Ready to Generate
-                </h3>
-                <p className="text-gray-500">
+                <h3 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-2">Ready to Generate</h3>
+                <p className="text-gray-500 dark:text-slate-400">
                   Configure your input and click "Generate MCP Server" to start
                 </p>
               </div>
@@ -615,4 +543,3 @@ export default function GeneratePage() {
     </div>
   );
 }
-

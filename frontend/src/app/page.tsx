@@ -10,9 +10,9 @@ const AGENTS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Hero */}
-      <div className="bg-slate-900 px-6 py-24 md:py-32">
+      <div className="bg-slate-900 dark:bg-slate-950 px-6 py-24 md:py-32 border-b border-slate-800">
         <div className="max-w-4xl mx-auto">
           <p className="text-xs font-semibold tracking-widest uppercase text-blue-400 mb-8">
             Powered by IBM watsonx.ai Granite
@@ -38,35 +38,35 @@ export default function Home() {
       </div>
 
       {/* 5-Agent Pipeline */}
-      <div className="px-6 py-20 border-b border-slate-100">
+      <div className="px-6 py-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
-          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-12">
+          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-12">
             5-Agent Pipeline
           </p>
           <div>
             {AGENTS.map((agent, i) => (
               <div
                 key={i}
-                className="flex items-baseline gap-8 py-5 border-t border-slate-100 group"
+                className="flex items-baseline gap-8 py-5 border-t border-slate-100 dark:border-slate-800 group"
               >
-                <span className="text-3xl font-black text-slate-200 tabular-nums w-14 flex-shrink-0 group-hover:text-blue-500 transition-colors">
+                <span className="text-3xl font-black text-slate-200 dark:text-slate-700 tabular-nums w-14 flex-shrink-0 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
                   {agent.num}
                 </span>
                 <div className="flex items-baseline gap-6 flex-wrap min-w-0">
-                  <span className="text-lg font-semibold text-slate-900 whitespace-nowrap">{agent.name}</span>
-                  <span className="text-slate-500 text-sm">{agent.desc}</span>
+                  <span className="text-lg font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">{agent.name}</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm">{agent.desc}</span>
                 </div>
               </div>
             ))}
-            <div className="border-t border-slate-100" />
+            <div className="border-t border-slate-100 dark:border-slate-800" />
           </div>
         </div>
       </div>
 
       {/* How It Works */}
-      <div className="px-6 py-20 border-b border-slate-100">
+      <div className="px-6 py-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
-          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-12">
+          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-12">
             How It Works
           </p>
           <div className="grid md:grid-cols-3 gap-12">
@@ -88,9 +88,9 @@ export default function Home() {
               },
             ].map(({ n, title, body }) => (
               <div key={n}>
-                <p className="text-5xl font-black text-slate-100 mb-4">{n}</p>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{body}</p>
+                <p className="text-5xl font-black text-slate-100 dark:text-slate-800 mb-4">{n}</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{title}</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{body}</p>
               </div>
             ))}
           </div>
@@ -98,7 +98,7 @@ export default function Home() {
       </div>
 
       {/* Bottom CTA */}
-      <div className="bg-slate-900 px-6 py-20">
+      <div className="bg-slate-900 dark:bg-slate-950 px-6 py-20 border-t border-slate-800">
         <div className="max-w-4xl mx-auto flex items-center justify-between flex-wrap gap-6">
           <div>
             <h2 className="text-3xl font-bold text-slate-50 mb-2">Ready to generate?</h2>
