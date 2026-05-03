@@ -350,7 +350,6 @@ export default function GeneratePage() {
     setGenerating(true);
     setAgentUpdates([]);
     setCurrentAgent(null);
-    setOverallProgress(0);
     setGeneratedCode('');
 
     const wsUrl = (process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000') + '/api/simple/generate/stream';
@@ -358,6 +357,7 @@ export default function GeneratePage() {
     wsRef.current = ws;
 
     ws.onopen = () => {
+      setOverallProgress(0);
       ws.send(JSON.stringify({
         input_type: inputType,
         content,
@@ -377,7 +377,6 @@ export default function GeneratePage() {
         setGeneratedCode(code);
         setReadme(generatedReadme);
         setOutputTab('code');
-        setOverallProgress(100);
         setCurrentAgent(msg);
         setAgentUpdates(prev => [...prev, msg]);
         setGenerating(false);
@@ -682,67 +681,71 @@ export default function GeneratePage() {
 
           {/* Right Panel */}
           <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 24 }}>
-            {(generating || agentUpdates.length > 0) && (
-              <div className="surface" style={{ padding: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--sans)' }}>Agent Pipeline</h2>
-                  {!generating && overallProgress === 100 && (
-                    <span className="eyebrow" style={{ background: 'rgba(31,122,77,0.1)', color: 'var(--ok)', padding: '4px 8px', borderRadius: 'var(--radius)', marginBottom: 0 }}>Complete</span>
-                  )}
-                </div>
+            <div className="surface" style={{ padding: 24, minHeight: 120 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--sans)' }}>Agent Pipeline</h2>
+                {!generating && overallProgress === 100 && agentUpdates.length > 0 && (
+                  <span className="eyebrow" style={{ background: 'rgba(31,122,77,0.1)', color: 'var(--ok)', padding: '4px 8px', borderRadius: 'var(--radius)', marginBottom: 0 }}>Complete</span>
+                )}
+              </div>
 
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--ink-3)', marginBottom: 6, fontFamily: 'var(--sans)' }}>
-                    <span>Overall Progress</span>
-                    <span style={{ fontWeight: 500 }}>{Math.round(overallProgress)}%</span>
-                  </div>
-                  <div style={{ width: '100%', background: 'var(--paper-2)', borderRadius: 12, height: 8 }}>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--ink-3)', marginBottom: 6, fontFamily: 'var(--sans)' }}>
+                  <span>Overall Progress</span>
+                  <span style={{ fontWeight: 500 }}>{Math.round(overallProgress)}%</span>
+                </div>
+                  <div style={{ width: '100%', background: 'var(--paper-2)', borderRadius: 12, height: 8, overflow: 'hidden' }}>
                     <div
                       style={{
                         background: 'var(--accent)',
                         height: 8,
                         borderRadius: 12,
                         transition: 'width 0.5s ease',
-                        width: `${overallProgress}%`,
-                        animation: generating ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
+                        width: `${Math.max(overallProgress, 0.5)}%`,
+                        minWidth: overallProgress === 0 ? '2px' : '0',
                       }}
                     />
                   </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 0, maxHeight: 288, overflowY: 'auto' as any }} className="scroll-thin">
-                  {agentUpdates.filter(u => u.agent_name !== 'Pipeline').map((update, index) => (
-                    <div key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderTop: index === 0 ? 'none' : '1px solid var(--rule)' }}>
-                      <div style={{
-                        flexShrink: 0,
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '10px',
-                        fontWeight: 'bold' as any,
-                        marginTop: 2,
-                        background: update.status === 'completed' ? 'var(--ok)' : update.status === 'error' ? 'var(--err)' : update.status === 'processing' ? 'var(--warn)' : 'var(--accent)',
-                        color: 'var(--paper)',
-                      }}>
-                        {update.status === 'completed' ? '✓' : update.status === 'error' ? '✗' : '·'}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', lineHeight: 1.3, fontFamily: 'var(--sans)' }}>{update.agent_name}</p>
-                        <p style={{
-                          margin: '2px 0 0',
-                          fontSize: '11px',
-                          fontFamily: 'var(--sans)',
-                          color: update.status === 'completed' ? 'var(--ok)' : update.status === 'error' ? 'var(--err)' : 'var(--warn)',
-                        }}>{update.message}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
+
+              <div style={{ minHeight: 44 }}>
+                {(generating || agentUpdates.length > 0) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 0, maxHeight: 288, overflowY: 'auto' as any }} className="scroll-thin">
+                    {[...agentUpdates].reverse().filter(u => u.agent_name !== 'Pipeline').map((update, index) => (
+                      <div key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderTop: index === 0 ? 'none' : '1px solid var(--rule)' }}>
+                        <div style={{
+                          flexShrink: 0,
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          fontWeight: 'bold' as any,
+                          marginTop: 2,
+                          background: update.status === 'completed' ? 'var(--ok)' : update.status === 'error' ? 'var(--err)' : update.status === 'processing' ? 'var(--warn)' : 'var(--accent)',
+                          color: 'var(--paper)',
+                        }}>
+                          {update.status === 'completed' ? '✓' : update.status === 'error' ? '✗' : '·'}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', lineHeight: 1.3, fontFamily: 'var(--sans)' }}>{update.agent_name}</p>
+                          <p style={{
+                            margin: '2px 0 0',
+                            fontSize: '11px',
+                            fontFamily: 'var(--sans)',
+                            color: update.status === 'completed' ? 'var(--ok)' : update.status === 'error' ? 'var(--err)' : 'var(--warn)',
+                          }}>{update.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-3)', fontFamily: 'var(--sans)', lineHeight: 1.3 }}>Ready to generate — configure your input and click "Generate MCP Server"</p>
+                )}
+              </div>
+            </div>
 
             {(generatedCode || readme) && (
               <>
@@ -827,18 +830,9 @@ export default function GeneratePage() {
               </>
             )}
 
-            {!generating && !generatedCode && (
-              <div className="surface" style={{ padding: 48, textAlign: 'center' as any }}>
-                <div style={{ fontSize: '48px', marginBottom: 16 }}>🤖</div>
-                <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'var(--sans)' }}>Ready to Generate</h3>
-                <p style={{ margin: 0, color: 'var(--ink-3)', fontFamily: 'var(--sans)', fontSize: '14px' }}>
-                  Configure your input and click "Generate MCP Server" to start
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+           </div>
+         </div>
+       </div>
+     </div>
+   );
 }
