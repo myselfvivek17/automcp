@@ -13,108 +13,194 @@ const AGENTS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
-      {/* Hero */}
-      <div className="bg-slate-900 dark:bg-slate-950 px-6 py-24 md:py-32 border-b border-slate-800">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-xs font-semibold tracking-widest uppercase text-blue-400 mb-8">
-            Powered by IBM watsonx.ai Granite
-          </p>
-          <h1 className="text-6xl md:text-8xl font-black text-slate-50 tracking-tight leading-none mb-6">
-            API to MCP<br className="hidden md:block" /> in seconds.
+    <div style={{ background: 'var(--paper)', color: 'var(--ink)' }}>
+      {/* HERO */}
+      <section style={{ padding: '80px 28px 60px', position: 'relative' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div className="eyebrow eyebrow-accent" style={{ marginBottom: 28 }}>
+            <span style={{
+              display: 'inline-block', width: 6, height: 6, borderRadius: 3,
+              background: 'var(--accent)', marginRight: 8, verticalAlign: 'middle',
+              animation: 'pulse-dot 1.6s ease-in-out infinite',
+            }} />
+            Powered by IBM watsonx.ai · Granite 3.1
+          </div>
+
+          <h1 className="serif" style={{
+            margin: 0, fontSize: 'clamp(48px, 7.5vw, 116px)', lineHeight: 0.98,
+            letterSpacing: '-0.045em',
+            fontWeight: 600,
+          }}>
+            Any API, into an<br />
+            <span style={{ color: 'var(--accent)' }}>MCP server</span>
+            <span className="serif-i" style={{ color: 'var(--ink-3)' }}>,<br className="hidden-md" />in seconds.</span>
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mb-10">
-            Paste any OpenAPI spec, drop a GitHub URL, or fill a form. Watch 8 AI agents transform it into a production-ready MCP server, live.
-          </p>
-          <div className="flex items-center gap-6 flex-wrap">
-            <Link
-              href="/generate"
-              className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-500 transition-colors"
-            >
-              Start Generating
-            </Link>
-            <span className="text-sm text-slate-500">
-              No sign-up required · Python and TypeScript output
-            </span>
+
+          <div style={{
+            marginTop: 64, display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)',
+            gap: 60, alignItems: 'start',
+          }}>
+            <p style={{
+              margin: 0, fontSize: 19, lineHeight: 1.5, color: 'var(--ink-2)',
+              maxWidth: 580, textWrap: 'pretty',
+            }}>
+              Paste an OpenAPI spec, drop a GitHub URL, or describe your endpoints in prose.
+              Eight specialist agents work in sequence — extracting schemas, mapping tools,
+              detecting auth, generating idiomatic code — and hand you a production-ready
+              server you can wire into Claude Desktop or Cursor.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <Link href="/generate" className="btn btn-primary" style={{ fontSize: 15 }}>
+                  Start a generation
+                  <span style={{ marginLeft: 4 }}>→</span>
+                </Link>
+                <Link href="/settings" className="btn btn-ghost" style={{ fontSize: 15 }}>
+                  Configure agents
+                </Link>
+              </div>
+              <div className="mono" style={{
+                fontSize: 11, color: 'var(--ink-mute)', letterSpacing: '0.04em',
+              }}>
+                no sign-up · python &amp; typescript · open source
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 5-Agent Pipeline */}
-      <div className="px-6 py-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-12">
-            8-Agent Pipeline
-          </p>
-          <div>
-            {AGENTS.map((agent, i) => (
-              <div
-                key={i}
-                className="flex items-baseline gap-8 py-5 border-t border-slate-100 dark:border-slate-800 group"
-              >
-                <span className="text-3xl font-black text-slate-200 dark:text-slate-700 tabular-nums w-14 flex-shrink-0 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
-                  {agent.num}
-                </span>
-                <div className="flex items-baseline gap-6 flex-wrap min-w-0">
-                  <span className="text-lg font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">{agent.name}</span>
-                  <span className="text-slate-500 dark:text-slate-400 text-sm">{agent.desc}</span>
+      {/* PIPELINE — the marquee viz */}
+      <section style={{
+        padding: '60px 28px 80px',
+        borderTop: '1px solid var(--rule)',
+        borderBottom: '1px solid var(--rule)',
+        background: 'var(--paper-2)',
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 36 }}>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>The pipeline</div>
+              <h2 className="serif" style={{ margin: 0, fontSize: 'clamp(32px, 4vw, 48px)', lineHeight: 1.02, letterSpacing: '-0.035em' }}>
+                Eight agents.<br />
+                <span className="serif-i" style={{ color: 'var(--ink-3)' }}>One handoff each.</span>
+              </h2>
+            </div>
+            <div style={{ maxWidth: 360, color: 'var(--ink-3)', fontSize: 14.5, lineHeight: 1.55 }}>
+              Every step is independently observable. Pipe a Granite model into one stage and
+              GPT-4 into the next — whatever you set in <em className="serif-i">Agents</em> is what runs.
+            </div>
+          </div>
+
+          <div className="surface" style={{
+            padding: '36px 24px 28px', background: 'var(--paper)',
+            border: '1px solid var(--rule-strong)',
+          }}>
+            {/* Agent Timeline - simplified for now, can be enhanced later */}
+            <div style={{ display: 'grid', gap: 0, borderBottom: '1px solid var(--rule)' }}>
+              {AGENTS.map((agent, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: '24px',
+                    padding: '18px 0',
+                    borderTop: i === 0 ? 'none' : '1px solid var(--rule)',
+                  }}
+                >
+                  <span className="mono" style={{
+                    fontSize: 10.5, color: 'var(--accent)', letterSpacing: '0.08em',
+                    minWidth: 28,
+                  }}>{agent.num}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', minWidth: 160 }}>{agent.name}</span>
+                  <span style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink-3)', textWrap: 'pretty' }}>
+                    {agent.desc}
+                  </span>
                 </div>
-              </div>
-            ))}
-            <div className="border-t border-slate-100 dark:border-slate-800" />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* How It Works */}
-      <div className="px-6 py-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-12">
-            How It Works
-          </p>
-          <div className="grid md:grid-cols-3 gap-12">
+      {/* HOW IT WORKS — three columns */}
+      <section style={{ padding: '80px 28px', background: 'var(--paper)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 36 }}>
+            <div className="eyebrow" style={{ marginBottom: 10 }}>How it works</div>
+            <h2 className="serif" style={{
+              margin: 0, fontSize: 'clamp(32px, 4vw, 48px)', lineHeight: 1.02,
+              letterSpacing: '-0.035em',
+            }}>
+              Three steps. <span className="serif-i" style={{ color: 'var(--ink-3)' }}>No surprises.</span>
+            </h2>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: 0,
+            borderTop: '1px solid var(--rule)',
+          }}>
             {[
-              {
-                n: '1',
-                title: 'Choose your input',
-                body: 'OpenAPI/Swagger JSON, plain text, GitHub repo URL, API docs URL, file upload, or fill endpoints manually.',
-              },
-              {
-                n: '2',
-                title: 'Watch agents work',
-                body: 'Each agent runs in sequence with real-time progress updates over WebSocket.',
-              },
-              {
-                n: '3',
-                title: 'Download and run',
-                body: 'Get a complete MCP server plus a generated README with setup instructions and Claude Desktop config.',
-              },
-            ].map(({ n, title, body }) => (
-              <div key={n}>
-                <p className="text-5xl font-black text-slate-100 dark:text-slate-800 mb-4">{n}</p>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{title}</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{body}</p>
+              { n: '1', title: 'Bring your spec', body: 'OpenAPI 3.0 or Swagger 2.0 JSON, a docs URL, a GitHub repo, a file upload, or a quick prose description — all paths go through the same pipeline.' },
+              { n: '2', title: 'Watch agents work', body: 'A WebSocket streams every state transition: parsed schemas, extracted endpoints, detected auth, candidate tool names, finalized code — live, in order.' },
+              { n: '3', title: 'Wire it up', body: 'Download the server file plus a generated README. Drop the included config snippet into Claude Desktop or Cursor and restart. That\'s it.' },
+            ].map((s) => (
+              <div key={s.n} style={{ padding: '36px 28px 36px 0', borderBottom: '1px solid var(--rule)' }}>
+                <div className="serif" style={{
+                  fontSize: 80, lineHeight: 1, color: 'var(--accent)', marginBottom: 14,
+                  letterSpacing: '-0.04em',
+                }}>{s.n}</div>
+                <h3 style={{ margin: '0 0 10px', fontSize: 20, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                  {s.title}
+                </h3>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--ink-3)', textWrap: 'pretty', maxWidth: 320 }}>
+                  {s.body}
+                </p>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Bottom CTA */}
-      <div className="bg-slate-900 dark:bg-slate-950 px-6 py-20 border-t border-slate-800">
-        <div className="max-w-4xl mx-auto flex items-center justify-between flex-wrap gap-6">
-          <div>
-            <h2 className="text-3xl font-bold text-slate-50 mb-2">Ready to generate?</h2>
-            <p className="text-slate-400 text-sm">No sign-up · Works without API keys · Open source</p>
-          </div>
-          <Link
-            href="/generate"
-            className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-500 transition-colors whitespace-nowrap"
-          >
-            Open Generator
+      {/* CTA */}
+      <section style={{
+        padding: '80px 28px',
+        background: 'var(--ink)', color: 'var(--paper)',
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 }}>
+          <h2 className="serif" style={{
+            margin: 0, fontSize: 'clamp(36px, 5vw, 68px)', lineHeight: 0.98, letterSpacing: '-0.04em',
+            maxWidth: 720, color: 'var(--paper)',
+          }}>
+            Ready when you are.
+            <br />
+            <span className="serif-i" style={{ color: 'var(--ink-mute)' }}>Paste a spec; we'll do the rest.</span>
+          </h2>
+          <Link href="/generate" className="btn" style={{
+            background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)',
+            padding: '16px 24px', fontSize: 15, textDecoration: 'none',
+          }}>
+            Open the generator →
           </Link>
         </div>
-      </div>
+      </section>
+
+      <footer style={{ padding: '24px 28px', borderTop: '1px solid var(--rule)', background: 'var(--paper)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontFamily: 'var(--sans)', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>AutoMCP</span>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--ink-mute)', letterSpacing: '0.06em' }}>
+               automcp · 2026 · MIT
+            </span>
+          </div>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--ink-mute)', letterSpacing: '0.06em' }}>
+            built on the model context protocol
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

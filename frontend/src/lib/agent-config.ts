@@ -61,12 +61,22 @@ export const PRESETS: Record<string, { provider: string; modelIndex: number }> =
 };
 
 const STORAGE_KEY = 'automcp_agent_configs';
+const CONFIG_VERSION = '2.0'; // Increment when DEFAULT_CONFIGS structure changes
+const VERSION_KEY = 'automcp_config_version';
 
 export function loadAgentConfigs(): AgentConfigs {
   if (typeof window === 'undefined') return { ...DEFAULT_CONFIGS };
   try {
+    const savedVersion = localStorage.getItem(VERSION_KEY);
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return { ...DEFAULT_CONFIGS };
+
+    // If version mismatch or no saved config, use defaults
+    if (savedVersion !== CONFIG_VERSION || !saved) {
+      saveAgentConfigs(DEFAULT_CONFIGS);
+      localStorage.setItem(VERSION_KEY, CONFIG_VERSION);
+      return { ...DEFAULT_CONFIGS };
+    }
+
     return { ...DEFAULT_CONFIGS, ...JSON.parse(saved) };
   } catch {
     return { ...DEFAULT_CONFIGS };

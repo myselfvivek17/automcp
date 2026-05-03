@@ -41,10 +41,31 @@ function CodeBlock({ code }: { code: string }) {
   };
   return (
     <div className="relative group">
-      <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 text-sm font-mono overflow-x-auto">{code}</pre>
+      <pre style={{
+        background: 'var(--ink)',
+        color: 'var(--paper)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '16px',
+        fontSize: '14px',
+        fontFamily: 'var(--mono)',
+        overflowX: 'auto' as any,
+      }}>{code}</pre>
       <button
         onClick={copy}
-        className="absolute top-2 right-2 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          fontSize: '12px',
+          background: 'var(--paper-3)',
+          color: 'var(--ink-3)',
+          padding: '4px 8px',
+          borderRadius: 'var(--radius)',
+          border: 'none',
+          opacity: 0,
+          cursor: 'pointer',
+        } as any}
+        className="group-hover:opacity-100 transition-opacity"
       >
         {copied ? 'Copied!' : 'Copy'}
       </button>
@@ -64,55 +85,64 @@ function GenerationInsights({ agentUpdates }: { agentUpdates: AgentUpdate[] }) {
   const tools: any[] = completed.find(u => u.agent_name === 'Endpoint Mapper')?.data?.mcp_tools ?? [];
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
+    <div className="surface" style={{ padding: '20px' }}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 20px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left' as any,
+        }}
       >
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">How it was built</h2>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--sans)' }}>How it was built</h2>
+          <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--ink-3)', fontFamily: 'var(--sans)' }}>
             {endpointCount} endpoints discovered → {toolCount} MCP tools · Auth: {authType}
           </p>
         </div>
-        <span className="text-gray-400 dark:text-slate-500 text-lg ml-4">{open ? '▲' : '▼'}</span>
+        <span style={{ color: 'var(--ink-3)', fontSize: '18px', marginLeft: 16 }}>{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
-        <div className="border-t border-gray-100 dark:border-slate-700 p-5 space-y-5">
+        <div style={{ padding: '20px', borderTop: '1px solid var(--rule)', display: 'flex', flexDirection: 'column' as any, gap: '20px' }}>
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Endpoints extracted ({endpointCount})</h3>
-            <div className="space-y-1.5">
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>Endpoints extracted ({endpointCount})</h3>
+            <div style={{ display: 'flex', flexDirection: 'column' as any, gap: '6px' }}>
               {endpoints.map((ep: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-sm">
-                  <span className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
-                    ep.method === 'GET' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                    ep.method === 'POST' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                    ep.method === 'PUT' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                    ep.method === 'DELETE' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                    'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300'
-                  }`}>{ep.method}</span>
-                  <code className="text-gray-600 dark:text-slate-400 text-xs">{ep.path}</code>
-                  {ep.summary && <span className="text-gray-400 dark:text-slate-500 text-xs">— {ep.summary}</span>}
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px' }}>
+                  <span className={`method method-${ep.method}`}>{ep.method}</span>
+                  <code style={{ color: 'var(--ink-3)', fontSize: '12px', fontFamily: 'var(--mono)' }}>{ep.path}</code>
+                  {ep.summary && <span style={{ color: 'var(--ink-mute)', fontSize: '12px' }}>— {ep.summary}</span>}
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">MCP tools generated ({toolCount})</h3>
-            <div className="flex flex-wrap gap-2">
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>MCP tools generated ({toolCount})</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap' as any, gap: 8 }}>
               {tools.map((t: any, i: number) => (
-                <span key={i} className="px-2 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded text-xs font-mono">
-                  {t.name}
-                </span>
+                <span key={i} style={{
+                  padding: '4px 8px',
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  borderRadius: 'var(--radius)',
+                  fontSize: '12px',
+                  fontFamily: 'var(--mono)',
+                }}>{t.name}</span>
               ))}
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Authentication detected</h3>
-            <p className="text-sm text-gray-600 dark:text-slate-400">
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4, fontFamily: 'var(--sans)' }}>Authentication detected</h3>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-3)', fontFamily: 'var(--sans)' }}>
               Type: <strong>{authType}</strong> · Location: header · Scheme: Bearer
             </p>
           </div>
@@ -160,52 +190,57 @@ function SetupInstructions({ language }: { language: string }) {
 }`;
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Setup & Configuration</h2>
+    <div className="surface" style={{ padding: '24px', display: 'flex', flexDirection: 'column' as any, gap: '24px' }}>
+      <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--sans)' }}>Setup & Configuration</h2>
 
       <div>
-        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">1. Install dependencies</h3>
+        <h3 style={{ fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)', fontSize: '14px' }}>1. Install dependencies</h3>
         <CodeBlock code={installCmd} />
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">2. Save the generated code</h3>
-        <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
-          Download the file above and save it as <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-300 px-1 rounded font-mono text-sm">{filename}</code>.
+        <h3 style={{ fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)', fontSize: '14px' }}>2. Save the generated code</h3>
+        <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--ink-3)', fontFamily: 'var(--sans)' }}>
+          Download the file above and save it as <code style={{ background: 'var(--paper-2)', padding: '2px 4px', borderRadius: 3, fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--ink)' }}>{filename}</code>.
         </p>
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">3. Test the server</h3>
+        <h3 style={{ fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)', fontSize: '14px' }}>3. Test the server</h3>
         <CodeBlock code={runCmd} />
-        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">The server communicates over stdio — it won't print anything on startup unless there's an error.</p>
+        <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>The server communicates over stdio — it won't print anything on startup unless there's an error.</p>
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">4. Add to Claude Desktop</h3>
-        <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
-          Edit <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-300 px-1 rounded font-mono text-sm">~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-300 px-1 rounded font-mono text-sm">%APPDATA%\Claude\claude_desktop_config.json</code> (Windows):
+        <h3 style={{ fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)', fontSize: '14px' }}>4. Add to Claude Desktop</h3>
+        <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--ink-3)', fontFamily: 'var(--sans)' }}>
+          Edit <code style={{ background: 'var(--paper-2)', padding: '2px 4px', borderRadius: 3, fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--ink)' }}>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code style={{ background: 'var(--paper-2)', padding: '2px 4px', borderRadius: 3, fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--ink)' }}>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows):
         </p>
         <CodeBlock code={claudeConfig} />
-        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Restart Claude Desktop after saving.</p>
+        <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>Restart Claude Desktop after saving.</p>
       </div>
 
       <div>
-        <h3 className="font-medium text-gray-800 dark:text-slate-200 mb-2">5. Add to Cursor</h3>
+        <h3 style={{ fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)', fontSize: '14px' }}>5. Add to Cursor</h3>
         <CodeBlock code={cursorConfig} />
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
-        <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Environment variables</p>
-        <p className="text-sm text-blue-700 dark:text-blue-400">
-          If your API requires authentication, set the API key as an environment variable and update the <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono text-xs">headers</code> dict in the generated code before running.
+      <div style={{
+        background: 'var(--accent-soft)',
+        border: '1px solid var(--accent)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '16px',
+      }}>
+        <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 500, color: 'var(--accent)', fontFamily: 'var(--sans)' }}>Environment variables</p>
+        <p style={{ margin: 0, fontSize: '13px', color: 'var(--accent-deep)', fontFamily: 'var(--sans)' }}>
+          If your API requires authentication, set the API key as an environment variable and update the <code style={{ background: 'rgba(41,66,255,0.1)', padding: '2px 4px', borderRadius: 3, fontFamily: 'var(--mono)', fontSize: '12px' }}>headers</code> dict in the generated code before running.
         </p>
       </div>
     </div>
   );
 }
 
-const INPUT_CLS = "w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100";
+const INPUT_CLS = "field";
 
 export default function GeneratePage() {
   const [inputType, setInputType] = useState('text');
@@ -424,46 +459,57 @@ export default function GeneratePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-50">
+    <div style={{ background: 'var(--paper)', color: 'var(--ink)', padding: '40px 28px', minHeight: '100vh' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' as any }}>
+            <h1 className="serif" style={{ margin: 0, fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 600, letterSpacing: '-0.035em' }}>
               AutoMCP Generator
             </h1>
-            <span className="text-xs font-semibold tracking-wider uppercase bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full">
+            <span className="eyebrow eyebrow-accent" style={{ marginBottom: 0 }}>
               Powered by IBM Granite
             </span>
           </div>
-          <p className="text-gray-600 dark:text-slate-400">
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)', fontFamily: 'var(--sans)' }}>
             Generate MCP server code from any API specification with real-time 8-agent AI pipeline
           </p>
         </div>
 
         {savedSession && !generatedCode && (
-          <div className="mb-6 flex items-center justify-between bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
-            <p className="text-sm text-amber-800 dark:text-amber-300">
-              Last session from <span className="font-medium">{savedSession.timestamp}</span> — restore your generated code?
+          <div style={{
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--paper-2)',
+            border: '1px solid var(--rule-strong)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '12px 16px',
+            flexWrap: 'wrap' as any,
+            gap: 12,
+          }}>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-2)', fontFamily: 'var(--sans)' }}>
+              Last session from <span style={{ fontWeight: 600 }}>{savedSession.timestamp}</span> — restore your generated code?
             </p>
-            <div className="flex gap-2 ml-4 flex-shrink-0">
-              <button onClick={restoreSession} className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-colors">
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button onClick={restoreSession} className="btn btn-sm" style={{ background: 'var(--warn)', color: 'var(--paper)', borderColor: 'var(--warn)' }}>
                 Restore
               </button>
-              <button onClick={() => setSavedSession(null)} className="text-sm text-amber-700 dark:text-amber-400 hover:underline">
+              <button onClick={() => setSavedSession(null)} style={{ background: 'none', border: 'none', fontSize: '13px', color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--sans)' }}>
                 Dismiss
               </button>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24 }}>
           {/* Left Panel */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">Input Configuration</h2>
-              <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 24 }}>
+            <div className="surface" style={{ padding: 24 }}>
+              <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--sans)' }}>Input Configuration</h2>
+              <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 16 }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Input Type</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>Input Type</label>
                   <select value={inputType} onChange={(e) => setInputType(e.target.value)} className={INPUT_CLS}>
                     <option value="text">Plain Text</option>
                     <option value="url">URL (API Docs Page)</option>
@@ -475,14 +521,14 @@ export default function GeneratePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Output Language</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>Output Language</label>
                   <select title="Output language" value={language} onChange={(e) => setLanguage(e.target.value)} className={INPUT_CLS}>
                     <option value="python">Python</option>
                     <option value="typescript">TypeScript</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">AI Provider (Optional)</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>AI Provider (Optional)</label>
                   <select title="AI provider" value={provider} onChange={(e) => setProvider(e.target.value)} className={INPUT_CLS}>
                     <option value="watsonx">IBM Watsonx.ai</option>
                     <option value="openai">OpenAI</option>
@@ -491,7 +537,7 @@ export default function GeneratePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">API Key (Optional)</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>API Key (Optional)</label>
                   <input
                     type="password"
                     value={apiKey}
@@ -499,40 +545,40 @@ export default function GeneratePage() {
                     placeholder="Leave empty for mock generation"
                     className={INPUT_CLS}
                   />
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Works without API key using mock responses</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>Works without API key using mock responses</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
+            <div className="surface" style={{ padding: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--sans)' }}>
                   {inputType === 'url' ? 'API Docs URL' : 'API Specification'}
                 </h2>
                 {(inputType === 'openapi' || inputType === 'swagger' || inputType === 'text') && (
-                  <button type="button" onClick={loadSample} className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                  <button type="button" onClick={loadSample} style={{ background: 'none', border: 'none', fontSize: '13px', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'var(--sans)' }}>
                     Load Sample
                   </button>
                 )}
               </div>
               {inputType === 'url' && (
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 12 }}>
                   <input type="url" value={content} onChange={(e) => setContent(e.target.value)}
                     placeholder="https://api.example.com/docs or https://petstore.swagger.io/v2/swagger.json"
                     className={INPUT_CLS} />
-                  <p className="text-xs text-gray-500 dark:text-slate-400">HTML docs, raw OpenAPI/Swagger JSON, or README files.</p>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>HTML docs, raw OpenAPI/Swagger JSON, or README files.</p>
                 </div>
               )}
               {inputType === 'github' && (
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 12 }}>
                   <input type="url" value={content} onChange={(e) => setContent(e.target.value)}
                     placeholder="https://github.com/owner/repo"
                     className={INPUT_CLS} />
-                  <p className="text-xs text-gray-500 dark:text-slate-400">Auto-finds openapi.json / swagger.yaml in the repo root or /docs.</p>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>Auto-finds openapi.json / swagger.yaml in the repo root or /docs.</p>
                 </div>
               )}
               {inputType === 'file' && (
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 12 }}>
                   <input type="file" accept=".json,.yaml,.yml"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -549,36 +595,38 @@ export default function GeneratePage() {
                       reader.readAsText(file);
                     }}
                     className={INPUT_CLS} />
-                  <p className="text-xs text-gray-500 dark:text-slate-400">Upload OpenAPI 3.0 or Swagger 2.0 .json / .yaml file.</p>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>Upload OpenAPI 3.0 or Swagger 2.0 .json / .yaml file.</p>
                 </div>
               )}
               {inputType === 'form' && (
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 12 }}>
                   <input type="text" placeholder="API Name (e.g. Petstore API)" value={formApiName}
                     onChange={(e) => { setFormApiName(e.target.value); serializeForm(e.target.value, formBaseUrl, formEndpoints); }}
                     className={INPUT_CLS} />
                   <input type="url" placeholder="Base URL (e.g. https://api.example.com)" value={formBaseUrl}
                     onChange={(e) => { setFormBaseUrl(e.target.value); serializeForm(formApiName, e.target.value, formEndpoints); }}
                     className={INPUT_CLS} />
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-gray-600 dark:text-slate-400">Endpoints</p>
+                  <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 8 }}>
+                    <p style={{ margin: 0, fontSize: '11px', fontWeight: 500, color: 'var(--ink-3)', fontFamily: 'var(--sans)' }}>Endpoints</p>
                     {formEndpoints.map((ep, i) => (
-                      <div key={i} className="flex gap-2 items-center">
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <select value={ep.method} onChange={(e) => updateEndpoint(i, 'method', e.target.value)}
-                          className="w-24 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100">
+                          style={{ width: 96, padding: '8px 12px', border: '1px solid var(--rule-strong)', borderRadius: 'var(--radius)', fontSize: '13px', fontFamily: 'var(--mono)', background: 'var(--paper)', color: 'var(--ink)' }}>
                           {['GET','POST','PUT','DELETE','PATCH'].map(m => <option key={m}>{m}</option>)}
                         </select>
                         <input type="text" placeholder="/path/{id}" value={ep.path}
                           onChange={(e) => updateEndpoint(i, 'path', e.target.value)}
-                          className="w-36 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100" />
+                          style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--rule-strong)', borderRadius: 'var(--radius)', fontSize: '13px', fontFamily: 'var(--mono)', background: 'var(--paper)', color: 'var(--ink)' }} />
                         <input type="text" placeholder="Description" value={ep.description}
                           onChange={(e) => updateEndpoint(i, 'description', e.target.value)}
-                          className="flex-1 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100" />
+                          style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--rule-strong)', borderRadius: 'var(--radius)', fontSize: '13px', fontFamily: 'var(--sans)', background: 'var(--paper)', color: 'var(--ink)' }} />
                         <button onClick={() => removeEndpoint(i)}
-                          className="text-red-500 hover:text-red-700 text-xl font-bold leading-none px-1">×</button>
+                          style={{ background: 'none', border: 'none', fontSize: '20px', color: 'var(--err)', cursor: 'pointer', fontWeight: 'bold', padding: 4 }}>×</button>
                       </div>
                     ))}
-                    <button onClick={addEndpoint} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">+ Add Endpoint</button>
+                    <button onClick={addEndpoint} style={{ background: 'none', border: 'none', fontSize: '13px', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'var(--sans)' }}>
+                      + Add Endpoint
+                    </button>
                   </div>
                 </div>
               )}
@@ -591,21 +639,41 @@ export default function GeneratePage() {
                     inputType === 'swagger' ? 'Paste Swagger 2.0 JSON here...' :
                     'Describe your API endpoints, e.g.:\n\nBase URL: https://api.example.com\n\nGET /users — list all users\nPOST /users — create a user\nGET /users/{id} — get user by ID'
                   }
-                  className={`${INPUT_CLS} h-64 font-mono text-sm`}
+                  style={{
+                    width: '100%',
+                    background: 'var(--paper)',
+                    border: '1px solid var(--rule-strong)',
+                    padding: '10px 12px',
+                    fontFamily: 'var(--mono)',
+                    fontSize: '12.5px',
+                    color: 'var(--ink)',
+                    borderRadius: 'var(--radius)',
+                    outline: 'none',
+                    transition: 'border-color 0.15s ease, background 0.15s ease',
+                    minHeight: 256,
+                    lineHeight: 1.6,
+                    resize: 'vertical' as any,
+                  } as any}
                 />
               )}
             </div>
 
-            <div className="flex gap-4">
+            <div style={{ display: 'flex', gap: 16 }}>
               <button
                 onClick={handleGenerate}
                 disabled={generating || (inputType === 'form' ? (!formApiName || !formBaseUrl || formEndpoints.length === 0) : !content)}
-                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
+                className="btn btn-primary"
+                style={{
+                  flex: 1,
+                  textAlign: 'center' as any,
+                  opacity: (generating || (inputType === 'form' ? (!formApiName || !formBaseUrl || formEndpoints.length === 0) : !content)) ? 0.5 : 1,
+                  cursor: (generating || (inputType === 'form' ? (!formApiName || !formBaseUrl || formEndpoints.length === 0) : !content)) ? 'not-allowed' : 'pointer',
+                }}
               >
                 {generating ? 'Generating...' : 'Generate MCP Server'}
               </button>
               {generating && (
-                <button onClick={handleStop} className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
+                <button onClick={handleStop} className="btn" style={{ background: 'var(--err)', color: 'var(--paper)', borderColor: 'var(--err)' }}>
                   Stop
                 </button>
               )}
@@ -613,47 +681,62 @@ export default function GeneratePage() {
           </div>
 
           {/* Right Panel */}
-          <div className="space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 24 }}>
             {(generating || agentUpdates.length > 0) && (
-              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Agent Pipeline</h2>
+              <div className="surface" style={{ padding: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--sans)' }}>Agent Pipeline</h2>
                   {!generating && overallProgress === 100 && (
-                    <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2 py-1 rounded-full">Complete</span>
+                    <span className="eyebrow" style={{ background: 'rgba(31,122,77,0.1)', color: 'var(--ok)', padding: '4px 8px', borderRadius: 'var(--radius)', marginBottom: 0 }}>Complete</span>
                   )}
                 </div>
 
-                <div className="mb-5">
-                  <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400 mb-1.5">
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--ink-3)', marginBottom: 6, fontFamily: 'var(--sans)' }}>
                     <span>Overall Progress</span>
-                    <span className="font-medium">{Math.round(overallProgress)}%</span>
+                    <span style={{ fontWeight: 500 }}>{Math.round(overallProgress)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5">
+                  <div style={{ width: '100%', background: 'var(--paper-2)', borderRadius: 12, height: 8 }}>
                     <div
-                      className={`bg-blue-600 h-2.5 rounded-full transition-all duration-500 ${generating ? 'animate-pulse' : ''}`}
-                      style={{ width: `${overallProgress}%` }}
+                      style={{
+                        background: 'var(--accent)',
+                        height: 8,
+                        borderRadius: 12,
+                        transition: 'width 0.5s ease',
+                        width: `${overallProgress}%`,
+                        animation: generating ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
+                      }}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-0 divide-y divide-gray-50 dark:divide-slate-700 max-h-72 overflow-y-auto">
+                <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 0, maxHeight: 288, overflowY: 'auto' as any }} className="scroll-thin">
                   {agentUpdates.filter(u => u.agent_name !== 'Pipeline').map((update, index) => (
-                    <div key={index} className="flex items-start gap-3 py-2.5">
-                      <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${
-                        update.status === 'completed' ? 'bg-green-500 text-white' :
-                        update.status === 'error' ? 'bg-red-500 text-white' :
-                        update.status === 'processing' ? 'bg-amber-400 text-white' :
-                        'bg-blue-500 text-white'
-                      }`}>
+                    <div key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderTop: index === 0 ? 'none' : '1px solid var(--rule)' }}>
+                      <div style={{
+                        flexShrink: 0,
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '10px',
+                        fontWeight: 'bold' as any,
+                        marginTop: 2,
+                        background: update.status === 'completed' ? 'var(--ok)' : update.status === 'error' ? 'var(--err)' : update.status === 'processing' ? 'var(--warn)' : 'var(--accent)',
+                        color: 'var(--paper)',
+                      }}>
                         {update.status === 'completed' ? '✓' : update.status === 'error' ? '✗' : '·'}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 dark:text-slate-200 leading-tight">{update.agent_name}</p>
-                        <p className={`text-xs mt-0.5 truncate ${
-                          update.status === 'completed' ? 'text-green-600 dark:text-green-400' :
-                          update.status === 'error' ? 'text-red-600 dark:text-red-400' :
-                          'text-amber-600 dark:text-amber-400'
-                        }`}>{update.message}</p>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', lineHeight: 1.3, fontFamily: 'var(--sans)' }}>{update.agent_name}</p>
+                        <p style={{
+                          margin: '2px 0 0',
+                          fontSize: '11px',
+                          fontFamily: 'var(--sans)',
+                          color: update.status === 'completed' ? 'var(--ok)' : update.status === 'error' ? 'var(--err)' : 'var(--warn)',
+                        }}>{update.message}</p>
                       </div>
                     </div>
                   ))}
@@ -663,24 +746,49 @@ export default function GeneratePage() {
 
             {(generatedCode || readme) && (
               <>
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
-                  <div className="flex border-b border-gray-200 dark:border-slate-700">
+                <div className="surface" style={{ overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', borderBottom: '1px solid var(--rule)' }}>
                     <button onClick={() => setOutputTab('code')}
-                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${outputTab === 'code' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        fontFamily: 'var(--sans)',
+                        background: outputTab === 'code' ? 'var(--accent-soft)' : 'none',
+                        color: outputTab === 'code' ? 'var(--accent)' : 'var(--ink-3)',
+                        border: 'none',
+                        borderBottom: outputTab === 'code' ? '2px solid var(--accent)' : '2px solid transparent',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}>
                       Generated Code
                     </button>
                     <button onClick={() => setOutputTab('readme')} disabled={!readme}
-                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors disabled:opacity-40 ${outputTab === 'readme' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>
-                      README {readme && <span className="ml-1 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full">new</span>}
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        fontFamily: 'var(--sans)',
+                        background: outputTab === 'readme' ? 'var(--accent-soft)' : 'none',
+                        color: outputTab === 'readme' ? 'var(--accent)' : 'var(--ink-3)',
+                        border: 'none',
+                        borderBottom: outputTab === 'readme' ? '2px solid var(--accent)' : '2px solid transparent',
+                        cursor: readme ? 'pointer' : 'not-allowed',
+                        opacity: readme ? 1 : 0.4,
+                        transition: 'all 0.15s ease',
+                      }}>
+                      README {readme && <span style={{ marginLeft: 4, fontSize: '10px', background: 'rgba(31,122,77,0.1)', color: 'var(--ok)', padding: '2px 6px', borderRadius: 3 }}>new</span>}
                     </button>
                   </div>
 
                   {outputTab === 'code' && generatedCode && (
-                    <div className="p-6">
-                      <div className="flex justify-end mb-3">
-                        <button onClick={downloadCode} className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">Download</button>
+                    <div style={{ padding: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                        <button onClick={downloadCode} className="btn btn-sm" style={{ background: 'var(--ok)', color: 'var(--paper)', borderColor: 'var(--ok)' }}>Download</button>
                       </div>
-                      <div className="border border-gray-300 dark:border-slate-600 rounded-lg overflow-hidden">
+                      <div style={{ border: '1px solid var(--rule)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
                         <MonacoEditor height="500px" language={language === 'python' ? 'python' : 'typescript'}
                           value={generatedCode} theme="vs-dark"
                           options={{ readOnly: true, minimap: { enabled: false }, fontSize: 14, lineNumbers: 'on', scrollBeyondLastLine: false, automaticLayout: true }} />
@@ -689,21 +797,27 @@ export default function GeneratePage() {
                   )}
 
                   {outputTab === 'readme' && readme && (
-                    <div className="p-6">
-                      <div className="flex justify-end mb-3">
+                    <div style={{ padding: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                         <button onClick={() => {
                           const blob = new Blob([readme], { type: 'text/markdown' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url; a.download = 'README.md'; a.click();
                           URL.revokeObjectURL(url);
-                        }} className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                          Download README
-                        </button>
+                        }} className="btn btn-sm" style={{ background: 'var(--ok)', color: 'var(--paper)', borderColor: 'var(--ok)' }}>Download README</button>
                       </div>
-                      <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 dark:bg-slate-900 p-4 rounded-lg overflow-auto max-h-[500px] text-gray-800 dark:text-slate-200">
-                        {readme}
-                      </pre>
+                      <pre style={{
+                        whiteSpace: 'pre-wrap' as any,
+                        fontSize: '13px',
+                        fontFamily: 'var(--mono)',
+                        background: 'var(--paper-2)',
+                        padding: 16,
+                        borderRadius: 'var(--radius-lg)',
+                        overflow: 'auto',
+                        maxHeight: 500,
+                        color: 'var(--ink-2)',
+                      }}>{readme}</pre>
                     </div>
                   )}
                 </div>
@@ -714,10 +828,10 @@ export default function GeneratePage() {
             )}
 
             {!generating && !generatedCode && (
-              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-12 text-center">
-                <div className="text-6xl mb-4">🤖</div>
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-2">Ready to Generate</h3>
-                <p className="text-gray-500 dark:text-slate-400">
+              <div className="surface" style={{ padding: 48, textAlign: 'center' as any }}>
+                <div style={{ fontSize: '48px', marginBottom: 16 }}>🤖</div>
+                <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'var(--sans)' }}>Ready to Generate</h3>
+                <p style={{ margin: 0, color: 'var(--ink-3)', fontFamily: 'var(--sans)', fontSize: '14px' }}>
                   Configure your input and click "Generate MCP Server" to start
                 </p>
               </div>

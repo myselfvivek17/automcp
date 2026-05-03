@@ -23,8 +23,28 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="p-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--paper-2)',
+        border: '1px solid var(--rule)',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        color: 'var(--ink-3)',
+      } as any}
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'var(--paper-3)';
+        e.currentTarget.style.color = 'var(--ink)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'var(--paper-2)';
+        e.currentTarget.style.color = 'var(--ink-3)';
+      }}
     >
       {dark ? <SunIcon /> : <MoonIcon />}
     </button>

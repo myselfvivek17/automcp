@@ -10,12 +10,11 @@ const nextConfig = {
 
   webpack: (config) => {
     config.module.rules.push({ test: /\.ttf$/, type: 'asset/resource' });
+    config.cache = false;
     return config;
   },
 
   images: { domains: [] },
-
-  turbopack: { root: __dirname },
 };
 
 module.exports = nextConfig;

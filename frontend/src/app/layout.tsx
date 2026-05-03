@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
+import './styles.css';
 
 export const metadata: Metadata = {
   title: 'AutoMCP - Automatic MCP Server Generator',
@@ -15,22 +13,34 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body>
         <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
-        <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <Link href="/" className="font-bold text-gray-900 dark:text-slate-50 text-lg tracking-tight">
+        <header className="nav-blur" style={{
+          borderBottom: '1px solid var(--rule)',
+          padding: '16px 28px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}>
+          <Link href="/" style={{ fontFamily: 'var(--sans)', fontWeight: 700, color: 'var(--ink)', fontSize: '18px', letterSpacing: '-0.01em' }}>
             AutoMCP
           </Link>
-          <div className="flex items-center gap-5 text-sm">
-            <Link href="/generate" className="text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', fontSize: '14px' }}>
+            <Link href="/" style={{ color: 'var(--ink-3)', fontFamily: 'var(--sans)', fontWeight: 500, transition: 'color 0.15s ease' }} className="hover:text-accent">
+              Overview
+            </Link>
+            <Link href="/generate" style={{ color: 'var(--ink-3)', fontFamily: 'var(--sans)', fontWeight: 500, transition: 'color 0.15s ease' }} className="hover:text-accent">
               Generator
             </Link>
-            <Link href="/settings" className="text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
-              Agent Config
+            <Link href="/settings" style={{ color: 'var(--ink-3)', fontFamily: 'var(--sans)', fontWeight: 500, transition: 'color 0.15s ease' }} className="hover:text-accent">
+              Agents
             </Link>
             <ThemeToggle />
           </div>
-        </nav>
+        </header>
         {children}
       </body>
     </html>
