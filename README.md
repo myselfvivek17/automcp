@@ -1,90 +1,96 @@
 # AutoMCP — Automatic MCP Server Generator
 
-> **Generate production-ready MCP (Model Context Protocol) server code from any API specification in seconds.**
-
-Built with IBM watsonx.ai Granite models and a real-time 8-agent pipeline.
+> **Turn any API into a production-ready MCP (Model Context Protocol) server in seconds — powered by IBM watsonx.ai Granite.**
 
 ---
 
-## What it does
+## The Problem
 
-Paste an OpenAPI spec, drop a GitHub URL, upload a file, or fill out a form → watch 8 AI agents work in real-time via WebSocket → download a ready-to-use Python or TypeScript MCP server plus a generated README.
+Connecting AI assistants like Claude to external APIs requires writing MCP server boilerplate by hand — parsing the spec, mapping endpoints, handling auth, writing tool schemas, generating code. It takes hours per API. AutoMCP does it in under a minute.
+
+## Demo
+
+Paste the [Petstore Swagger spec](https://petstore.swagger.io/v2/swagger.json) URL → click Generate → in ~45 seconds you get a fully working Python MCP server with a README, ready to drop into Claude Desktop.
 
 ## 8-Agent Pipeline
 
-| # | Agent | Task |
+Eight specialized IBM Granite agents work in sequence, each streaming live progress:
+
+| # | Agent | What it does |
 |---|-------|------|
 | 1 | **Input Parser** | Normalizes OpenAPI 3.0, Swagger 2.0, URL, GitHub repo, file upload, or plain text |
-| 2 | **Schema Extractor** | Extracts endpoints, parameters, and schemas |
+| 2 | **Schema Extractor** | Extracts endpoints, parameters, and request/response schemas |
 | 3 | **Endpoint Mapper** | Maps each endpoint to an MCP tool definition |
-| 4 | **Auth Analyzer** | Detects authentication type and configures headers |
-| 5 | **MCP Translator** | Formalizes tool schemas with JSON Schema input definitions |
-| 6 | **Code Generator** | Generates secure Python or TypeScript MCP server code |
-| 7 | **Validator** | Reviews generated code for syntax errors and MCP compliance |
-| 8 | **Docs Generator** | Writes README with setup instructions, tool list, and Claude Desktop config |
+| 4 | **Auth Analyzer** | Detects auth type (Bearer, API key, OAuth) and configures headers |
+| 5 | **MCP Translator** | Formalizes tool schemas with full JSON Schema input definitions |
+| 6 | **Code Generator** | Generates secure, runnable Python or TypeScript MCP server code |
+| 7 | **Validator** | Reviews generated code for syntax errors and MCP compliance — auto-fixes issues |
+| 8 | **Docs Generator** | Writes a README with setup instructions, tool list, and Claude Desktop config |
 
 ## Input Types
 
-| Type | Description |
-|------|-------------|
-| **Plain Text** | Describe your API endpoints in natural language |
-| **OpenAPI 3.0 JSON** | Paste a raw OpenAPI 3.0 spec |
-| **Swagger 2.0 JSON** | Paste a raw Swagger 2.0 spec |
-| **URL** | Any API docs page or direct link to a JSON/YAML spec |
-| **GitHub Repository** | Auto-finds `openapi.json` / `swagger.yaml` in repo root or `/docs` |
-| **File Upload** | Upload a `.json` or `.yaml` spec file |
-| **Manual Entry** | Fill in API name, base URL, and endpoints via a form |
-
-## Features
-
-- **Real-time agent visualization** — watch each agent's progress live via WebSocket streaming
-- **Per-agent model configuration** — assign different IBM Granite models to each agent independently
-- **Python & TypeScript output** — generated code follows MCP SDK best practices
-- **README output tab** — generated README with setup instructions and Claude Desktop config, downloadable
-- **Secure generated code** — environment variable API keys, 30s timeouts, full error handling
-- **Generation insights** — see exactly what endpoints were found and what tools were created
-- **One-click setup guide** — install commands + Claude Desktop / Cursor config included
+| Type | Example |
+|------|---------|
+| **Plain Text** | "GET /users — list users, POST /users — create user" |
+| **OpenAPI 3.0 JSON** | Paste raw spec |
+| **Swagger 2.0 JSON** | Paste raw spec |
+| **URL** | `https://petstore.swagger.io/v2/swagger.json` |
+| **GitHub Repository** | `https://github.com/owner/repo` — auto-finds openapi.json / swagger.yaml |
+| **File Upload** | Upload `.json` or `.yaml` spec |
+| **Manual Entry** | Fill in API name, base URL, and endpoints via form |
 
 ## IBM Technology
 
-- **IBM watsonx.ai** — Primary AI provider using Granite and other foundation models
-  - `ibm/granite-4-h-small` — fast general-purpose tasks (default for most agents)
-  - `ibm/granite-3-8b-instruct` — balanced instruction following
-  - `ibm/granite-8b-code-instruct` — code generation (default for Code Generator agent)
-  - `ibm/granite-guardian-3-8b` — Granite Guardian safety model
-  - `meta-llama/llama-3-3-70b-instruct` — high-quality generation
-  - `meta-llama/llama-4-maverick-17b-128e-instruct-fp8` — Llama 4 Maverick
-  - `mistralai/mistral-small-3-1-24b-instruct-2503` — Mistral Small
-- REST API with IAM token auth — chat endpoint with text/generation fallback
+AutoMCP is built on **IBM watsonx.ai** with the following Granite models, each chosen for its strength:
+
+| Model | Used for |
+|-------|----------|
+| `ibm/granite-4-h-small` | Fast parsing, schema extraction, auth analysis |
+| `ibm/granite-8b-code-instruct` | Code generation (strongest code model) |
+| `ibm/granite-3-8b-instruct` | MCP translation, validation, docs generation |
+| `ibm/granite-guardian-3-8b` | Optional safety checks on generated code |
+
+Every agent can be independently assigned a different model or API key via the `/settings` page — enabling cost vs. quality tradeoffs per task.
+
+The watsonx.ai integration uses:
+- **IAM token auth** — exchanges IBM Cloud API key for short-lived tokens with auto-refresh
+- **`/ml/v1/text/chat`** (chat completions) with automatic fallback to `/ml/v1/text/generation`
+- Structured JSON prompts with deterministic fallbacks when LLM output is unparseable
+
+## Features
+
+- Real-time agent visualization via WebSocket streaming
+- Per-agent model configuration — assign any Granite model to any agent
+- Session persistence — last generation auto-saved, restore on next visit
+- Code output with syntax highlighting and one-click download
+- README output tab — generated setup docs, downloadable as `README.md`
+- Docker support — `docker compose up --build` runs the full stack
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- IBM watsonx.ai API key and Project ID ([get one here](https://cloud.ibm.com/catalog/services/watsonx-ai))
-
-### Backend
+### Local
 
 ```bash
+# Backend
 cd backend
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env — fill in WATSONX_API_KEY, WATSONX_PROJECT_ID, WATSONX_URL
+cp ../.env.example .env   # fill in WATSONX_API_KEY + WATSONX_PROJECT_ID
 uvicorn app.main:app --reload
-```
 
-Backend runs at `http://localhost:8000` · API docs at `http://localhost:8000/docs`
-
-### Frontend
-
-```bash
+# Frontend (new terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend runs at `http://localhost:3000`
+Open `http://localhost:3000`
+
+### Docker
+
+```bash
+cp .env.example .env   # fill in your keys
+docker compose up --build
+```
 
 ### Environment Variables
 
@@ -94,22 +100,37 @@ WATSONX_PROJECT_ID=your-watsonx-project-id
 WATSONX_URL=https://us-south.ml.cloud.ibm.com
 ```
 
+Get credentials at [cloud.ibm.com/catalog/services/watsonx-ai](https://cloud.ibm.com/catalog/services/watsonx-ai).
+
 ## Usage
 
 1. Open `http://localhost:3000/generate`
-2. Select an input type and provide your API spec
+2. Select input type and provide your API spec (try the Petstore URL: `https://petstore.swagger.io/v2/swagger.json`)
 3. Select output language (Python or TypeScript)
-4. Click **Generate MCP Server**
-5. Watch all 8 agents process your spec in real time
-6. Download generated code from the **Code** tab
-7. Download the auto-generated README from the **README** tab
+4. Click **Generate MCP Server** — watch all 8 agents run live
+5. Download the generated code from the **Code** tab
+6. Download the auto-generated README from the **README** tab
+7. Run the server and add it to your Claude Desktop config
 
-### Per-Agent Configuration
+## Architecture
 
-Visit `/settings` to assign a specific AI model and API key to each pipeline agent. Presets available:
-- **Cost-Optimized** — Granite 4.0 small for all agents (fastest)
-- **Balanced** — Granite 3 8B instruct for all agents
-- **Performance** — Granite 8B Code instruct for all agents
+```
+User Input (7 types)
+         ↓
+   WebSocket /api/simple/generate/stream
+         ↓
+   MultiAgentPipeline (IBM watsonx.ai Granite)
+   ├── InputParserAgent       → normalized API spec
+   ├── SchemaExtractorAgent   → endpoints + schemas
+   ├── EndpointMapperAgent    → MCP tool definitions
+   ├── AuthAnalyzerAgent      → auth config
+   ├── MCPTranslatorAgent     → JSON Schema tool definitions
+   ├── CodeGeneratorAgent     → Python / TypeScript MCP server
+   ├── ValidatorAgent         → validated + auto-fixed code
+   └── DocsGeneratorAgent     → README.md
+         ↓
+   Complete MCP Server Package (code + README)
+```
 
 ## Project Structure
 
@@ -117,40 +138,22 @@ Visit `/settings` to assign a specific AI model and API key to each pipeline age
 automcp/
 ├── backend/
 │   ├── app/
-│   │   ├── agents/          # 8-agent multi-agent pipeline
-│   │   ├── api/simple/      # FastAPI endpoints + WebSocket
-│   │   ├── providers/       # IBM watsonx.ai + OpenAI + Anthropic
-│   │   ├── services/        # Provider service
-│   │   └── main.py          # FastAPI app entry point
+│   │   ├── agents/          # 8-agent pipeline
+│   │   ├── api/simple/      # FastAPI + WebSocket
+│   │   ├── providers/       # IBM watsonx.ai, OpenAI, Anthropic
+│   │   └── main.py
+│   ├── Dockerfile
 │   └── requirements.txt
-└── frontend/
-    └── src/app/
-        ├── page.tsx          # Landing page
-        ├── generate/         # Main generator page
-        ├── settings/         # Per-agent configuration
-        └── lib/agent-config.ts
-```
-
-## Architecture
-
-```
-User Input (OpenAPI / Swagger / URL / GitHub / File / Form / Plain Text)
-         ↓
-   WebSocket /api/simple/generate/stream
-         ↓
-   MultiAgentPipeline
-   ├── InputParserAgent       → normalizes spec
-   ├── SchemaExtractorAgent   → extracts endpoints
-   ├── EndpointMapperAgent    → maps to MCP tools
-   ├── AuthAnalyzerAgent      → detects auth
-   ├── MCPTranslatorAgent     → formalizes JSON Schema
-   ├── CodeGeneratorAgent     → generates code
-   ├── ValidatorAgent         → validates + fixes code
-   └── DocsGeneratorAgent     → writes README
-         ↓
-   Generated Python / TypeScript MCP Server + README.md
+├── frontend/
+│   ├── src/app/
+│   │   ├── generate/        # Main generator UI
+│   │   ├── settings/        # Per-agent model config
+│   │   └── lib/agent-config.ts
+│   └── Dockerfile
+├── docker-compose.yml
+└── .env.example
 ```
 
 ---
 
-*Built for IBM Hackathon 2025 — demonstrating how IBM watsonx.ai Granite models can power a sophisticated multi-agent developer tooling workflow.*
+*Built for IBM Hackathon 2025 — demonstrating how IBM watsonx.ai Granite models can orchestrate a sophisticated multi-agent developer tooling workflow.*

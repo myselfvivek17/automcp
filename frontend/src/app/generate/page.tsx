@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { loadAgentConfigs } from '@/lib/agent-config';
 
@@ -227,7 +227,25 @@ export default function GeneratePage() {
     { method: 'GET', path: '/items', description: 'List all items' },
   ]);
 
+  const [savedSession, setSavedSession] = useState<{ code: string; readme: string; language: string; timestamp: string } | null>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('automcp_last_generation');
+      if (raw) setSavedSession(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  const restoreSession = () => {
+    if (!savedSession) return;
+    setGeneratedCode(savedSession.code);
+    setReadme(savedSession.readme);
+    setLanguage(savedSession.language);
+    setOutputTab('code');
+    setSavedSession(null);
+  };
 
   const sampleOpenAPI = `{
   "openapi": "3.0.0",
@@ -319,14 +337,23 @@ export default function GeneratePage() {
       const msg: AgentUpdate = JSON.parse(event.data);
 
       if (msg.agent_name === 'Pipeline' && msg.status === 'completed') {
-        setGeneratedCode(msg.data?.code ?? '');
-        setReadme(msg.data?.readme ?? '');
+        const code = msg.data?.code ?? '';
+        const generatedReadme = msg.data?.readme ?? '';
+        setGeneratedCode(code);
+        setReadme(generatedReadme);
         setOutputTab('code');
         setOverallProgress(100);
         setCurrentAgent(msg);
         setAgentUpdates(prev => [...prev, msg]);
         setGenerating(false);
         ws.close();
+        try {
+          localStorage.setItem('automcp_last_generation', JSON.stringify({
+            code, readme: generatedReadme, language,
+            timestamp: new Date().toLocaleTimeString(),
+          }));
+          setSavedSession(null);
+        } catch {}
         return;
       }
 
@@ -400,13 +427,34 @@ export default function GeneratePage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-50 mb-2">
-            AutoMCP Generator
-          </h1>
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-50">
+              AutoMCP Generator
+            </h1>
+            <span className="text-xs font-semibold tracking-wider uppercase bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full">
+              Powered by IBM Granite
+            </span>
+          </div>
           <p className="text-gray-600 dark:text-slate-400">
-            Generate MCP server code from any API specification with real-time agent visualization
+            Generate MCP server code from any API specification with real-time 8-agent AI pipeline
           </p>
         </div>
+
+        {savedSession && !generatedCode && (
+          <div className="mb-6 flex items-center justify-between bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              Last session from <span className="font-medium">{savedSession.timestamp}</span> — restore your generated code?
+            </p>
+            <div className="flex gap-2 ml-4 flex-shrink-0">
+              <button onClick={restoreSession} className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-colors">
+                Restore
+              </button>
+              <button onClick={() => setSavedSession(null)} className="text-sm text-amber-700 dark:text-amber-400 hover:underline">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel */}
