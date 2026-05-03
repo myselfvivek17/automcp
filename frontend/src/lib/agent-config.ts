@@ -9,16 +9,22 @@ export type AgentName =
   | 'Schema Extractor'
   | 'Endpoint Mapper'
   | 'Auth Analyzer'
-  | 'Code Generator';
+  | 'MCP Translator'
+  | 'Code Generator'
+  | 'Validator'
+  | 'Docs Generator';
 
 export type AgentConfigs = Record<AgentName, AgentConfig>;
 
 export const AGENT_DESCRIPTIONS: Record<AgentName, string> = {
-  'Input Parser': 'Parses and normalizes OpenAPI, Swagger, or plain text input',
+  'Input Parser':    'Parses and normalizes OpenAPI, Swagger, URL, GitHub, file upload, or plain text',
   'Schema Extractor': 'Extracts endpoint paths, methods, parameters, and schemas',
   'Endpoint Mapper': 'Maps API endpoints to MCP tool definitions',
-  'Auth Analyzer': 'Detects authentication type and configures auth headers',
-  'Code Generator': 'Generates production-ready Python or TypeScript MCP server code',
+  'Auth Analyzer':   'Detects authentication type and configures auth headers',
+  'MCP Translator':  'Formalizes tool schemas with JSON Schema input definitions',
+  'Code Generator':  'Generates production-ready Python or TypeScript MCP server code',
+  'Validator':       'Reviews generated code for syntax errors and MCP compliance',
+  'Docs Generator':  'Writes README with setup instructions and Claude Desktop config',
 };
 
 export const MODELS_BY_PROVIDER: Record<string, string[]> = {
@@ -38,11 +44,14 @@ export const MODELS_BY_PROVIDER: Record<string, string[]> = {
 };
 
 export const DEFAULT_CONFIGS: AgentConfigs = {
-  'Input Parser':     { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
-  'Schema Extractor': { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
-  'Endpoint Mapper':  { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
-  'Auth Analyzer':    { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
-  'Code Generator':   { provider: 'watsonx', model: 'ibm/granite-8b-code-instruct', apiKey: '' },
+  'Input Parser':    { provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
+  'Schema Extractor':{ provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
+  'Endpoint Mapper': { provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
+  'Auth Analyzer':   { provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
+  'MCP Translator':  { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct',    apiKey: '' },
+  'Code Generator':  { provider: 'watsonx', model: 'ibm/granite-8b-code-instruct', apiKey: '' },
+  'Validator':       { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct',    apiKey: '' },
+  'Docs Generator':  { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct',    apiKey: '' },
 };
 
 export const PRESETS: Record<string, { provider: string; modelIndex: number }> = {
