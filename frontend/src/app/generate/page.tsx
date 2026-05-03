@@ -300,7 +300,8 @@ export default function GeneratePage() {
     setOverallProgress(0);
     setGeneratedCode('');
 
-    const ws = new WebSocket('ws://localhost:8000/api/simple/generate/stream');
+    const wsUrl = (process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000') + '/api/simple/generate/stream';
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {

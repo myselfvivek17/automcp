@@ -1,35 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
-  // Environment variables
+  output: 'standalone',
+
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
   },
-  
-  // Webpack configuration
-  webpack: (config, { isServer }) => {
-    // Monaco Editor support
-    config.module.rules.push({
-      test: /\.ttf$/,
-      type: 'asset/resource',
-    });
-    
+
+  webpack: (config) => {
+    config.module.rules.push({ test: /\.ttf$/, type: 'asset/resource' });
     return config;
   },
-  
-  // Image optimization
-  images: {
-    domains: [],
-  },
-  
-  // Turbopack configuration
-  turbopack: {
-    root: __dirname,
-  },
+
+  images: { domains: [] },
+
+  turbopack: { root: __dirname },
 };
 
 module.exports = nextConfig;
-
-// Made with Bob
