@@ -20,9 +20,12 @@ const AGENT_ORDER: Record<string, number> = {
   'Schema Extractor': 1,
   'Endpoint Mapper': 2,
   'Auth Analyzer': 3,
-  'Code Generator': 4,
+  'MCP Translator': 4,
+  'Code Generator': 5,
+  'Validator': 6,
+  'Docs Generator': 7,
 };
-const TOTAL_AGENTS = 5;
+const TOTAL_AGENTS = 8;
 
 function calcOverallProgress(agentName: string, agentProgress: number): number {
   const slot = AGENT_ORDER[agentName] ?? 0;
@@ -216,6 +219,13 @@ export default function GeneratePage() {
   const [agentUpdates, setAgentUpdates] = useState<AgentUpdate[]>([]);
   const [currentAgent, setCurrentAgent] = useState<AgentUpdate | null>(null);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [readme, setReadme] = useState('');
+  const [outputTab, setOutputTab] = useState<'code' | 'readme'>('code');
+  const [formApiName, setFormApiName] = useState('');
+  const [formBaseUrl, setFormBaseUrl] = useState('');
+  const [formEndpoints, setFormEndpoints] = useState<{method: string; path: string; description: string}[]>([
+    { method: 'GET', path: '/items', description: 'List all items' },
+  ]);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -309,6 +319,8 @@ export default function GeneratePage() {
 
       if (msg.agent_name === 'Pipeline' && msg.status === 'completed') {
         setGeneratedCode(msg.data?.code ?? '');
+        setReadme(msg.data?.readme ?? '');
+        setOutputTab('code');
         setOverallProgress(100);
         setCurrentAgent(msg);
         setAgentUpdates(prev => [...prev, msg]);
@@ -361,6 +373,28 @@ export default function GeneratePage() {
     URL.revokeObjectURL(url);
   };
 
+  const serializeForm = (name: string, baseUrl: string, endpoints: {method: string; path: string; description: string}[]) => {
+    setContent(JSON.stringify({ api_name: name, base_url: baseUrl, endpoints }));
+  };
+
+  const addEndpoint = () => {
+    const updated = [...formEndpoints, { method: 'GET', path: '/endpoint', description: '' }];
+    setFormEndpoints(updated);
+    serializeForm(formApiName, formBaseUrl, updated);
+  };
+
+  const removeEndpoint = (i: number) => {
+    const updated = formEndpoints.filter((_, idx) => idx !== i);
+    setFormEndpoints(updated);
+    serializeForm(formApiName, formBaseUrl, updated);
+  };
+
+  const updateEndpoint = (i: number, field: string, value: string) => {
+    const updated = formEndpoints.map((ep, idx) => idx === i ? { ...ep, [field]: value } : ep);
+    setFormEndpoints(updated);
+    serializeForm(formApiName, formBaseUrl, updated);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
       <div className="max-w-7xl mx-auto">
@@ -384,8 +418,11 @@ export default function GeneratePage() {
                   <select value={inputType} onChange={(e) => setInputType(e.target.value)} className={INPUT_CLS}>
                     <option value="text">Plain Text</option>
                     <option value="url">URL (API Docs Page)</option>
+                    <option value="github">GitHub Repository</option>
                     <option value="openapi">OpenAPI 3.0 JSON</option>
                     <option value="swagger">Swagger 2.0 JSON</option>
+                    <option value="file">Upload File (.json / .yaml)</option>
+                    <option value="form">Manual Entry</option>
                   </select>
                 </div>
                 <div>
@@ -423,26 +460,80 @@ export default function GeneratePage() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
                   {inputType === 'url' ? 'API Docs URL' : 'API Specification'}
                 </h2>
-                {inputType !== 'url' && (
+                {(inputType === 'openapi' || inputType === 'swagger' || inputType === 'text') && (
                   <button type="button" onClick={loadSample} className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
                     Load Sample
                   </button>
                 )}
               </div>
-              {inputType === 'url' ? (
+              {inputType === 'url' && (
                 <div className="space-y-3">
-                  <input
-                    type="url"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                  <input type="url" value={content} onChange={(e) => setContent(e.target.value)}
                     placeholder="https://api.example.com/docs or https://petstore.swagger.io/v2/swagger.json"
-                    className={INPUT_CLS}
-                  />
-                  <p className="text-xs text-gray-500 dark:text-slate-400">
-                    Paste any URL containing API documentation — HTML docs pages, raw OpenAPI/Swagger JSON, or README files. The AI will extract endpoints automatically.
-                  </p>
+                    className={INPUT_CLS} />
+                  <p className="text-xs text-gray-500 dark:text-slate-400">HTML docs, raw OpenAPI/Swagger JSON, or README files.</p>
                 </div>
-              ) : (
+              )}
+              {inputType === 'github' && (
+                <div className="space-y-3">
+                  <input type="url" value={content} onChange={(e) => setContent(e.target.value)}
+                    placeholder="https://github.com/owner/repo"
+                    className={INPUT_CLS} />
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Auto-finds openapi.json / swagger.yaml in the repo root or /docs.</p>
+                </div>
+              )}
+              {inputType === 'file' && (
+                <div className="space-y-3">
+                  <input type="file" accept=".json,.yaml,.yml"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const text = ev.target?.result as string;
+                        setContent(text);
+                        try {
+                          const parsed = JSON.parse(text);
+                          setInputType(parsed.swagger ? 'swagger' : 'openapi');
+                        } catch { setInputType('openapi'); }
+                      };
+                      reader.readAsText(file);
+                    }}
+                    className={INPUT_CLS} />
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Upload OpenAPI 3.0 or Swagger 2.0 .json / .yaml file.</p>
+                </div>
+              )}
+              {inputType === 'form' && (
+                <div className="space-y-3">
+                  <input type="text" placeholder="API Name (e.g. Petstore API)" value={formApiName}
+                    onChange={(e) => { setFormApiName(e.target.value); serializeForm(e.target.value, formBaseUrl, formEndpoints); }}
+                    className={INPUT_CLS} />
+                  <input type="url" placeholder="Base URL (e.g. https://api.example.com)" value={formBaseUrl}
+                    onChange={(e) => { setFormBaseUrl(e.target.value); serializeForm(formApiName, e.target.value, formEndpoints); }}
+                    className={INPUT_CLS} />
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-600 dark:text-slate-400">Endpoints</p>
+                    {formEndpoints.map((ep, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <select value={ep.method} onChange={(e) => updateEndpoint(i, 'method', e.target.value)}
+                          className="w-24 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100">
+                          {['GET','POST','PUT','DELETE','PATCH'].map(m => <option key={m}>{m}</option>)}
+                        </select>
+                        <input type="text" placeholder="/path/{id}" value={ep.path}
+                          onChange={(e) => updateEndpoint(i, 'path', e.target.value)}
+                          className="w-36 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100" />
+                        <input type="text" placeholder="Description" value={ep.description}
+                          onChange={(e) => updateEndpoint(i, 'description', e.target.value)}
+                          className="flex-1 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100" />
+                        <button onClick={() => removeEndpoint(i)}
+                          className="text-red-500 hover:text-red-700 text-xl font-bold leading-none px-1">×</button>
+                      </div>
+                    ))}
+                    <button onClick={addEndpoint} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">+ Add Endpoint</button>
+                  </div>
+                </div>
+              )}
+              {(inputType === 'openapi' || inputType === 'swagger' || inputType === 'text') && (
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
@@ -459,7 +550,7 @@ export default function GeneratePage() {
             <div className="flex gap-4">
               <button
                 onClick={handleGenerate}
-                disabled={generating || !content}
+                disabled={generating || (inputType === 'form' ? (!formApiName || !formBaseUrl || formEndpoints.length === 0) : !content)}
                 className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
               >
                 {generating ? 'Generating...' : 'Generate MCP Server'}
@@ -521,32 +612,53 @@ export default function GeneratePage() {
               </div>
             )}
 
-            {generatedCode && (
+            {(generatedCode || readme) && (
               <>
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Generated Code</h2>
-                    <button onClick={downloadCode} className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                      Download
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
+                  <div className="flex border-b border-gray-200 dark:border-slate-700">
+                    <button onClick={() => setOutputTab('code')}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${outputTab === 'code' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>
+                      Generated Code
+                    </button>
+                    <button onClick={() => setOutputTab('readme')} disabled={!readme}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors disabled:opacity-40 ${outputTab === 'readme' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>
+                      README {readme && <span className="ml-1 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full">new</span>}
                     </button>
                   </div>
-                  <div className="border border-gray-300 dark:border-slate-600 rounded-lg overflow-hidden">
-                    <MonacoEditor
-                      height="500px"
-                      language={language === 'python' ? 'python' : 'typescript'}
-                      value={generatedCode}
-                      theme="vs-dark"
-                      options={{
-                        readOnly: true,
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        lineNumbers: 'on',
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                      }}
-                    />
-                  </div>
+
+                  {outputTab === 'code' && generatedCode && (
+                    <div className="p-6">
+                      <div className="flex justify-end mb-3">
+                        <button onClick={downloadCode} className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">Download</button>
+                      </div>
+                      <div className="border border-gray-300 dark:border-slate-600 rounded-lg overflow-hidden">
+                        <MonacoEditor height="500px" language={language === 'python' ? 'python' : 'typescript'}
+                          value={generatedCode} theme="vs-dark"
+                          options={{ readOnly: true, minimap: { enabled: false }, fontSize: 14, lineNumbers: 'on', scrollBeyondLastLine: false, automaticLayout: true }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {outputTab === 'readme' && readme && (
+                    <div className="p-6">
+                      <div className="flex justify-end mb-3">
+                        <button onClick={() => {
+                          const blob = new Blob([readme], { type: 'text/markdown' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url; a.download = 'README.md'; a.click();
+                          URL.revokeObjectURL(url);
+                        }} className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                          Download README
+                        </button>
+                      </div>
+                      <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 dark:bg-slate-900 p-4 rounded-lg overflow-auto max-h-[500px] text-gray-800 dark:text-slate-200">
+                        {readme}
+                      </pre>
+                    </div>
+                  )}
                 </div>
+
                 <GenerationInsights agentUpdates={agentUpdates} />
                 <SetupInstructions language={language} />
               </>

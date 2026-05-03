@@ -23,11 +23,14 @@ export const AGENT_DESCRIPTIONS: Record<AgentName, string> = {
 
 export const MODELS_BY_PROVIDER: Record<string, string[]> = {
   watsonx: [
-    'meta-llama/llama-3-8b-instruct',   // chat API, recommended for general tasks
-    'ibm/granite-3-8b-instruct',        // chat API, IBM native
-    'ibm/granite-13b-chat-v2',          // chat API, larger context
-    'ibm/granite-20b-code-instruct',    // code generation
-    'ibm/granite-34b-code-instruct',    // best code generation
+    'ibm/granite-4-h-small',                    // Granite 4.0 small, fast general tasks
+    'ibm/granite-3-8b-instruct',                // Granite 3 instruct
+    'ibm/granite-8b-code-instruct',             // code generation
+    'ibm/granite-guardian-3-8b',                // Granite Guardian safety model
+    'meta-llama/llama-3-3-70b-instruct',        // Llama 3.3 70B
+    'meta-llama/llama-4-maverick-17b-128e-instruct-fp8', // Llama 4 Maverick
+    'mistralai/mistral-small-3-1-24b-instruct-2503', // Mistral Small
+    'mistral-large-2512',                       // Mistral Large
   ],
   openai: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
@@ -35,11 +38,11 @@ export const MODELS_BY_PROVIDER: Record<string, string[]> = {
 };
 
 export const DEFAULT_CONFIGS: AgentConfigs = {
-  'Input Parser':     { provider: 'watsonx', model: 'meta-llama/llama-3-8b-instruct', apiKey: '' },
-  'Schema Extractor': { provider: 'watsonx', model: 'meta-llama/llama-3-8b-instruct', apiKey: '' },
-  'Endpoint Mapper':  { provider: 'watsonx', model: 'meta-llama/llama-3-8b-instruct', apiKey: '' },
-  'Auth Analyzer':    { provider: 'watsonx', model: 'meta-llama/llama-3-8b-instruct', apiKey: '' },
-  'Code Generator':   { provider: 'watsonx', model: 'ibm/granite-34b-code-instruct',  apiKey: '' },
+  'Input Parser':     { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
+  'Schema Extractor': { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
+  'Endpoint Mapper':  { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
+  'Auth Analyzer':    { provider: 'watsonx', model: 'ibm/granite-4-h-small',       apiKey: '' },
+  'Code Generator':   { provider: 'watsonx', model: 'ibm/granite-8b-code-instruct', apiKey: '' },
 };
 
 export const PRESETS: Record<string, { provider: string; modelIndex: number }> = {

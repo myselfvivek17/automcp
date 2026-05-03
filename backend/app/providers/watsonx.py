@@ -1,14 +1,15 @@
 import time
 import requests
-from typing import Optional, Any
+from typing import Optional
 from app.providers.base import BaseAIProvider
 
 
 class WatsonxProvider(BaseAIProvider):
-    """IBM Watsonx.ai provider using Chat API (REST) with IAM token auth."""
+    """IBM Watsonx.ai — textChat (/ml/v1/text/chat) with IAM token auth, text/generation fallback."""
 
     IAM_URL = "https://iam.cloud.ibm.com/identity/token"
-    CHAT_API_VERSION = "2024-05-31"
+    CHAT_VERSION = "2024-05-31"
+    GEN_VERSION = "2023-05-29"
 
     def __init__(self, api_key: Optional[str] = None, **kwargs):
         super().__init__(api_key, **kwargs)
@@ -18,7 +19,6 @@ class WatsonxProvider(BaseAIProvider):
         self._iam_expiry: float = 0.0
 
     def _get_iam_token(self) -> str:
-        """Exchange API key for IAM bearer token, cached until near expiry."""
         if self._iam_token and time.time() < self._iam_expiry:
             return self._iam_token
         resp = requests.post(
@@ -41,65 +41,63 @@ class WatsonxProvider(BaseAIProvider):
             return ""
         try:
             token = self._get_iam_token()
-            model_id = kwargs.get("model_id", "ibm/granite-13b-chat-v2")
+            model_id = kwargs.pop("model_id", "ibm/granite-4-h-small")
 
-            # Try Chat API first (newer endpoint)
-            result = self._try_chat(token, model_id, prompt, **kwargs)
+            result = self._try_text_chat(token, model_id, prompt, **kwargs)
             if result:
                 return result
 
-            # Fall back to Text Generation API
             return self._try_text_generation(token, model_id, prompt, **kwargs)
         except Exception as e:
             return f"Error: {str(e)}"
 
-    def _try_chat(self, token: str, model_id: str, prompt: str, **kwargs) -> Optional[str]:
-        """Try /ml/v1/text/chat endpoint."""
+    def _try_text_chat(self, token: str, model_id: str, prompt: str, **kwargs) -> Optional[str]:
+        """POST /ml/v1/text/chat — matches SDK textChat() signature."""
         try:
-            messages = [
-                {
-                    "role": "system",
-                    "content": "You are an expert API developer and MCP server code generator. Return exactly what is requested with no extra explanation.",
-                },
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": prompt}],
-                },
-            ]
             resp = requests.post(
-                f"{self.base_url}/ml/v1/text/chat?version={self.CHAT_API_VERSION}",
+                f"{self.base_url}/ml/v1/text/chat?version={self.CHAT_VERSION}",
                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                 json={
                     "model_id": model_id,
                     "project_id": self.project_id,
-                    "messages": messages,
                     "max_tokens": kwargs.get("max_tokens", 2000),
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "You are an expert API developer and MCP server code generator. Return exactly what is requested with no extra explanation.",
+                        },
+                        {
+                            "role": "user",
+                            "content": [{"type": "text", "text": prompt}],
+                        },
+                    ],
                 },
                 timeout=90,
             )
-            if resp.status_code == 404:
-                return None  # endpoint not available, fall through
+            if resp.status_code in (404, 422):
+                print(f"[watsonx] textChat {resp.status_code} — falling back to text/generation")
+                return None
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
-        except requests.HTTPError:
+        except requests.HTTPError as e:
+            print(f"[watsonx] textChat HTTP error: {e.response.status_code} {e.response.text[:200]}")
             return None
-        except Exception:
+        except Exception as e:
+            print(f"[watsonx] textChat error: {e}")
             return None
 
     def _try_text_generation(self, token: str, model_id: str, prompt: str, **kwargs) -> str:
-        """Fall back to /ml/v1/text/generation endpoint."""
+        """POST /ml/v1/text/generation — fallback."""
         system = "You are an expert API developer and MCP server code generator. Return exactly what is requested with no extra explanation.\n\n"
-        full_prompt = system + prompt
         resp = requests.post(
-            f"{self.base_url}/ml/v1/text/generation?version=2023-05-29",
+            f"{self.base_url}/ml/v1/text/generation?version={self.GEN_VERSION}",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
             json={
-                "input": full_prompt,
+                "input": system + prompt,
                 "model_id": model_id,
                 "project_id": self.project_id,
                 "parameters": {
                     "max_new_tokens": kwargs.get("max_tokens", 2000),
-                    "temperature": kwargs.get("temperature", 0.3),
                 },
             },
             timeout=90,

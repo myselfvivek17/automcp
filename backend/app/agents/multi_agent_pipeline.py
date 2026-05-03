@@ -58,9 +58,12 @@ class BaseAgent:
             kwargs: Dict[str, Any] = {"max_tokens": max_tokens}
             if model_id:
                 kwargs["model_id"] = model_id
+            logger.info(f"[LLM] {self.name} calling {provider.__class__.__name__} model={model_id or 'default'} max_tokens={max_tokens}")
             result = await asyncio.to_thread(provider.generate, prompt, **kwargs)
             if isinstance(result, str) and result and not result.startswith("Error:"):
+                logger.info(f"[LLM] {self.name} got {len(result)} chars")
                 return result
+            logger.warning(f"[LLM] {self.name} got empty/error response: {result!r:.100}")
         except Exception as e:
             logger.warning(f"LLM call failed in {self.name}: {e}")
         return None
@@ -121,6 +124,11 @@ class InputParserAgent(BaseAgent):
         elif input_type == "url":
             await self.send_update("processing", None, 0.5, "Fetching URL...", callback)
             parsed = await self._parse_url(content)
+        elif input_type == "github":
+            await self.send_update("processing", None, 0.5, "Fetching GitHub repo...", callback)
+            parsed = await self._parse_github(content)
+        elif input_type == "form":
+            parsed = await self._parse_form(content)
         else:
             parsed = await self._parse_text(content)
 
@@ -242,6 +250,86 @@ class InputParserAgent(BaseAgent):
             p = urlparse(raw)
             servers = [{"url": f"{p.scheme}://{p.netloc}"}]
         return {"format": "text", "description": content, "servers": servers, "endpoints": []}
+
+    async def _parse_form(self, content: str) -> Dict[str, Any]:
+        """Parse manual form entry JSON: {api_name, base_url, endpoints: [{method, path, description}]}"""
+        try:
+            data = json.loads(content)
+        except Exception:
+            return {"format": "form", "raw": content, "paths": {}, "servers": [], "components": {}, "securitySchemes": {}}
+
+        api_name = data.get("api_name", "Custom API")
+        base_url = data.get("base_url", "")
+        endpoints = data.get("endpoints", [])
+
+        paths: Dict = {}
+        for ep in endpoints:
+            path = ep.get("path", "/")
+            method = ep.get("method", "GET").lower()
+            if path not in paths:
+                paths[path] = {}
+            paths[path][method] = {
+                "summary": ep.get("description", f"{method.upper()} {path}"),
+                "parameters": [],
+                "responses": {"200": {"description": "Success"}},
+            }
+
+        return {
+            "format": "openapi",
+            "version": "3.0.0",
+            "info": {"title": api_name, "version": "1.0.0"},
+            "servers": [{"url": base_url}] if base_url else [],
+            "paths": paths,
+            "components": {"schemas": {}, "securitySchemes": {}},
+            "securitySchemes": {},
+        }
+
+    async def _parse_github(self, url: str) -> Dict[str, Any]:
+        """Fetch OpenAPI/Swagger spec from a GitHub repository URL."""
+        import httpx as _httpx
+        m = re.match(r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?(?:/.*)?$", url)
+        if not m:
+            return await self._parse_url(url)
+
+        owner, repo = m.group(1), m.group(2)
+        raw_base = f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD"
+        candidates = [
+            "/openapi.json", "/openapi.yaml", "/openapi.yml",
+            "/swagger.json", "/swagger.yaml", "/swagger.yml",
+            "/docs/openapi.json", "/api/openapi.json",
+        ]
+
+        async with _httpx.AsyncClient(timeout=20.0) as client:
+            for path in candidates:
+                try:
+                    resp = await client.get(raw_base + path)
+                    if resp.status_code != 200:
+                        continue
+                    text = resp.text
+                    try:
+                        spec = json.loads(text)
+                        if "openapi" in spec:
+                            return await self._parse_openapi(text)
+                        if "swagger" in spec:
+                            return await self._parse_swagger(text)
+                    except Exception:
+                        pass
+                    return await self._parse_text(f"API spec from {url}:\n{text[:4000]}")
+                except Exception:
+                    continue
+
+            try:
+                resp = await client.get(f"{raw_base}/README.md")
+                if resp.status_code == 200:
+                    return await self._parse_text(resp.text[:5000])
+            except Exception:
+                pass
+
+        return {
+            "format": "github_failed",
+            "info": {"title": f"{owner}/{repo}", "version": "1.0.0"},
+            "servers": [], "paths": {}, "components": {}, "securitySchemes": {},
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -794,6 +882,263 @@ Return ONLY TypeScript code. No markdown fences, no explanation."""
 
 
 # ---------------------------------------------------------------------------
+# Agent 5b — MCP Translator
+# ---------------------------------------------------------------------------
+
+class MCPTranslatorAgent(BaseAgent):
+    def __init__(self, provider_service=None):
+        super().__init__(
+            name="MCP Translator",
+            description="Translates endpoint mappings to formal MCP tool schema with JSON Schema",
+            provider_service=provider_service,
+        )
+
+    async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
+        self._current_cfg = input_data.get("_agent_config", {})
+        await self.send_update("started", None, 0.0, "Translating to MCP schema...", callback)
+
+        mcp_tools = input_data.get("mcp_tools", [])
+        auth_config = input_data.get("auth_config", {})
+        base_url = input_data.get("base_url", "")
+
+        await self.send_update("processing", None, 0.4, f"Formalizing {len(mcp_tools)} tool schemas...", callback)
+
+        mcp_schema = await self._translate(mcp_tools, auth_config, base_url)
+
+        tool_count = len(mcp_schema.get("tools", []))
+        await self.send_update("completed", mcp_schema, 1.0, f"MCP schema ready — {tool_count} tools", callback)
+        return {"mcp_schema": mcp_schema, "mcp_tools": mcp_schema.get("tools", mcp_tools)}
+
+    async def _translate(self, tools: List[Dict], auth_config: Dict, base_url: str) -> Dict:
+        prompt = f"""Convert these API endpoints to a formal MCP (Model Context Protocol) tool schema with JSON Schema input definitions.
+
+Input endpoints:
+{json.dumps(tools, indent=2)}
+
+Auth config: {json.dumps(auth_config)}
+Base URL: {base_url}
+
+Return ONLY valid JSON in this exact structure:
+{{
+  "server_name": "descriptive-mcp-server-name",
+  "server_description": "One sentence description of what this MCP server does",
+  "tools": [
+    {{
+      "name": "snake_case_tool_name",
+      "description": "Clear description of what this tool does",
+      "method": "GET",
+      "endpoint": "/path/{{param}}",
+      "inputSchema": {{
+        "type": "object",
+        "properties": {{
+          "param": {{"type": "string", "description": "Description of param"}}
+        }},
+        "required": ["param"]
+      }},
+      "parameters": []
+    }}
+  ]
+}}"""
+
+        result = await self._call_llm(prompt, max_tokens=3000)
+        if result:
+            parsed = self._extract_json(result)
+            if parsed and "tools" in parsed:
+                return parsed
+
+        server_name = base_url.replace("https://", "").replace("http://", "").split("/")[0].replace(".", "-") + "-mcp" if base_url else "api-mcp-server"
+        return {
+            "server_name": server_name,
+            "server_description": f"MCP server for {base_url}",
+            "tools": [self._enhance_tool(t) for t in tools],
+        }
+
+    def _enhance_tool(self, tool: Dict) -> Dict:
+        params = tool.get("parameters", [])
+        props: Dict = {}
+        required: List[str] = []
+        for p in params:
+            name = p.get("name", "param")
+            props[name] = {
+                "type": p.get("schema", {}).get("type", "string"),
+                "description": p.get("description", name),
+            }
+            if p.get("required"):
+                required.append(name)
+        return {**tool, "inputSchema": {"type": "object", "properties": props, "required": required}}
+
+
+# ---------------------------------------------------------------------------
+# Agent 7 — Validator
+# ---------------------------------------------------------------------------
+
+class ValidatorAgent(BaseAgent):
+    def __init__(self, provider_service=None):
+        super().__init__(
+            name="Validator",
+            description="Reviews generated code for syntax errors and MCP compliance",
+            provider_service=provider_service,
+        )
+
+    async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
+        self._current_cfg = input_data.get("_agent_config", {})
+        await self.send_update("started", None, 0.0, "Validating generated code...", callback)
+
+        code = input_data.get("code", "")
+        language = input_data.get("language", "python")
+
+        if not code:
+            await self.send_update("completed", None, 1.0, "No code to validate", callback)
+            return {"validation_result": {"valid": False, "issues": ["No code generated"]}}
+
+        await self.send_update("processing", None, 0.5, "Checking code quality...", callback)
+
+        result = await self._validate(code, language)
+        final_code = result.get("fixed_code") or code
+
+        issues = result.get("issues", [])
+        msg = "Code valid ✓" if not issues else f"{len(issues)} issue(s) fixed"
+        await self.send_update("completed", result, 1.0, msg, callback)
+        return {"validation_result": result, "code": final_code}
+
+    async def _validate(self, code: str, language: str) -> Dict:
+        prompt = f"""Review this {language} MCP server code and fix any issues.
+
+```{language}
+{code[:3000]}
+```
+
+Check for: missing imports, syntax errors, undefined variables, incorrect MCP server setup.
+
+Return ONLY valid JSON:
+{{
+  "valid": true,
+  "issues": ["issue 1", "issue 2"],
+  "fixed_code": null
+}}
+
+If there are issues set fixed_code to the complete corrected code. If code looks correct set fixed_code to null."""
+
+        result = await self._call_llm(prompt, max_tokens=4000)
+        if result:
+            parsed = self._extract_json(result)
+            if parsed and "valid" in parsed:
+                return parsed
+
+        issues: List[str] = []
+        if language == "python":
+            if "import" not in code:
+                issues.append("Missing imports")
+            if "FastMCP" not in code and "Server" not in code:
+                issues.append("MCP server not initialized")
+        else:
+            if "import" not in code and "require" not in code:
+                issues.append("Missing imports")
+            if "Server" not in code and "McpServer" not in code:
+                issues.append("MCP server not initialized")
+        return {"valid": len(issues) == 0, "issues": issues, "fixed_code": None}
+
+
+# ---------------------------------------------------------------------------
+# Agent 8 — Docs Generator
+# ---------------------------------------------------------------------------
+
+class DocsGeneratorAgent(BaseAgent):
+    def __init__(self, provider_service=None):
+        super().__init__(
+            name="Docs Generator",
+            description="Generates README.md with setup instructions and tool documentation",
+            provider_service=provider_service,
+        )
+
+    async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
+        self._current_cfg = input_data.get("_agent_config", {})
+        await self.send_update("started", None, 0.0, "Generating README...", callback)
+
+        mcp_schema = input_data.get("mcp_schema", {})
+        tools = mcp_schema.get("tools", input_data.get("mcp_tools", []))
+        auth_config = input_data.get("auth_config", {})
+        base_url = input_data.get("base_url", "")
+        language = input_data.get("language", "python")
+        server_name = mcp_schema.get("server_name", "mcp-server")
+
+        await self.send_update("processing", None, 0.5, "Writing documentation...", callback)
+
+        readme = await self._generate_readme(server_name, tools, auth_config, base_url, language)
+
+        await self.send_update("completed", {"preview": readme[:200]}, 1.0, "README ready", callback)
+        return {"readme": readme}
+
+    async def _generate_readme(self, server_name: str, tools: List[Dict], auth_config: Dict, base_url: str, language: str) -> str:
+        tool_list = "\n".join(f"- `{t['name']}`: {t.get('description', '')}" for t in tools[:15])
+
+        prompt = f"""Write a README.md for this MCP server.
+
+Name: {server_name}
+Base URL: {base_url}
+Language: {language}
+Auth type: {auth_config.get('type', 'none')}
+Tools:
+{tool_list}
+
+Include these sections in order:
+1. Title + one-line description
+2. Setup (install command + env vars)
+3. Run command
+4. Available Tools table (name | description columns)
+5. Claude Desktop config JSON block
+6. Quick usage example
+
+Write clean Markdown only. No extra commentary."""
+
+        result = await self._call_llm(prompt, max_tokens=2000)
+        if result and len(result) > 200:
+            return result
+
+        ext = "py" if language == "python" else "ts"
+        install = "pip install mcp httpx" if language == "python" else "npm install @modelcontextprotocol/sdk"
+        run_cmd = f"python mcp_server.{ext}" if language == "python" else f"npx ts-node mcp_server.{ext}"
+        tool_rows = "\n".join(f"| `{t['name']}` | {t.get('description', '-')} |" for t in tools)
+        return f"""# {server_name}
+
+Auto-generated MCP server for `{base_url}`.
+
+## Setup
+
+```bash
+{install}
+export API_KEY="your-api-key"
+```
+
+## Run
+
+```bash
+{run_cmd}
+```
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+{tool_rows}
+
+## Claude Desktop Config
+
+```json
+{{
+  "mcpServers": {{
+    "{server_name}": {{
+      "command": "python",
+      "args": ["mcp_server.{ext}"],
+      "env": {{"API_KEY": "your-api-key"}}
+    }}
+  }}
+}}
+```
+"""
+
+
+# ---------------------------------------------------------------------------
 # Pipeline Orchestrator
 # ---------------------------------------------------------------------------
 
@@ -805,7 +1150,10 @@ class MultiAgentPipeline:
             SchemaExtractorAgent(provider_service),
             EndpointMapperAgent(provider_service),
             AuthAnalyzerAgent(provider_service),
+            MCPTranslatorAgent(provider_service),
             CodeGeneratorAgent(provider_service),
+            ValidatorAgent(provider_service),
+            DocsGeneratorAgent(provider_service),
         ]
         self.total_agents = len(self.agents)
 
@@ -832,7 +1180,11 @@ class MultiAgentPipeline:
         if callback:
             await callback(AgentMessage(
                 "Pipeline", "completed",
-                {"code": current_data.get("code", ""), "language": current_data.get("language", "python")},
+                {
+                    "code": current_data.get("code", ""),
+                    "language": current_data.get("language", "python"),
+                    "readme": current_data.get("readme", ""),
+                },
                 1.0, "Generation complete",
             ))
         return current_data
