@@ -564,7 +564,7 @@ export default function GeneratePage() {
                 <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 12 }}>
                   <input type="url" value={content} onChange={(e) => setContent(e.target.value)}
                     placeholder="https://api.example.com/docs or https://petstore.swagger.io/v2/swagger.json"
-                    className={INPUT_CLS} />
+                    className={INPUT_CLS} aria-label="API Documentation URL" />
                   <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>HTML docs, raw OpenAPI/Swagger JSON, or README files.</p>
                 </div>
               )}
@@ -572,7 +572,7 @@ export default function GeneratePage() {
                 <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 12 }}>
                   <input type="url" value={content} onChange={(e) => setContent(e.target.value)}
                     placeholder="https://github.com/owner/repo"
-                    className={INPUT_CLS} />
+                    className={INPUT_CLS} aria-label="GitHub Repository URL" />
                   <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>Auto-finds openapi.json / swagger.yaml in the repo root or /docs.</p>
                 </div>
               )}
@@ -593,7 +593,7 @@ export default function GeneratePage() {
                       };
                       reader.readAsText(file);
                     }}
-                    className={INPUT_CLS} />
+                    className={INPUT_CLS} aria-label="Upload API specification file" />
                   <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>Upload OpenAPI 3.0 or Swagger 2.0 .json / .yaml file.</p>
                 </div>
               )}
@@ -601,10 +601,10 @@ export default function GeneratePage() {
                 <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 12 }}>
                   <input type="text" placeholder="API Name (e.g. Petstore API)" value={formApiName}
                     onChange={(e) => { setFormApiName(e.target.value); serializeForm(e.target.value, formBaseUrl, formEndpoints); }}
-                    className={INPUT_CLS} />
+                    className={INPUT_CLS} aria-label="API Name" />
                   <input type="url" placeholder="Base URL (e.g. https://api.example.com)" value={formBaseUrl}
                     onChange={(e) => { setFormBaseUrl(e.target.value); serializeForm(formApiName, e.target.value, formEndpoints); }}
-                    className={INPUT_CLS} />
+                    className={INPUT_CLS} aria-label="API Base URL" />
                   <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 8 }}>
                     <p style={{ margin: 0, fontSize: '11px', fontWeight: 500, color: 'var(--ink-3)', fontFamily: 'var(--sans)' }}>Endpoints</p>
                     {formEndpoints.map((ep, i) => (
@@ -614,10 +614,10 @@ export default function GeneratePage() {
                           {['GET','POST','PUT','DELETE','PATCH'].map(m => <option key={m}>{m}</option>)}
                         </select>
                         <input type="text" placeholder="/path/{id}" value={ep.path}
-                          onChange={(e) => updateEndpoint(i, 'path', e.target.value)}
+                          onChange={(e) => updateEndpoint(i, 'path', e.target.value)} aria-label={`Path for endpoint ${i + 1}`}
                           style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--rule-strong)', borderRadius: 'var(--radius)', fontSize: '13px', fontFamily: 'var(--mono)', background: 'var(--paper)', color: 'var(--ink)' }} />
                         <input type="text" placeholder="Description" value={ep.description}
-                          onChange={(e) => updateEndpoint(i, 'description', e.target.value)}
+                          onChange={(e) => updateEndpoint(i, 'description', e.target.value)} aria-label={`Description for endpoint ${i + 1}`}
                           style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--rule-strong)', borderRadius: 'var(--radius)', fontSize: '13px', fontFamily: 'var(--sans)', background: 'var(--paper)', color: 'var(--ink)' }} />
                         <button onClick={() => removeEndpoint(i)}
                           style={{ background: 'none', border: 'none', fontSize: '20px', color: 'var(--err)', cursor: 'pointer', fontWeight: 'bold', padding: 4 }}>×</button>
@@ -638,6 +638,7 @@ export default function GeneratePage() {
                     inputType === 'swagger' ? 'Paste Swagger 2.0 JSON here...' :
                     'Describe your API endpoints, e.g.:\n\nBase URL: https://api.example.com\n\nGET /users — list all users\nPOST /users — create a user\nGET /users/{id} — get user by ID'
                   }
+                  aria-label="API specification input"
                   style={{
                     width: '100%',
                     background: 'var(--paper)',
