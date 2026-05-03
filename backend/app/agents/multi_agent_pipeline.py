@@ -132,6 +132,18 @@ class InputParserAgent(BaseAgent):
         else:
             parsed = await self._parse_text(content)
 
+        # Validate parsed result — fail fast with clear message
+        fmt = parsed.get("format", "")
+        if fmt == "github_failed":
+            title = parsed.get("info", {}).get("title", "repo")
+            msg = f"No OpenAPI/Swagger spec found in '{title}'. Add openapi.json or swagger.yaml to the repo root, or paste the raw file URL directly."
+            await self.send_update("error", None, 0.0, msg, callback)
+            raise ValueError(msg)
+        if input_type == "form" and not parsed.get("paths"):
+            msg = "Form input has no endpoints. Add at least one endpoint before generating."
+            await self.send_update("error", None, 0.0, msg, callback)
+            raise ValueError(msg)
+
         await self.send_update("processing", parsed, 0.8, "Normalizing structure...", callback)
         await asyncio.sleep(0.2)
 

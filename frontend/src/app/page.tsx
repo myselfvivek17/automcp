@@ -1,11 +1,14 @@
 import Link from 'next/link';
 
 const AGENTS = [
-  { num: '01', name: 'Input Parser', desc: 'Normalizes OpenAPI 3.0, Swagger 2.0, and plain text' },
+  { num: '01', name: 'Input Parser', desc: 'Normalizes OpenAPI 3.0, Swagger 2.0, URL, GitHub repo, file upload, or plain text' },
   { num: '02', name: 'Schema Extractor', desc: 'Extracts endpoints, parameters, and schemas' },
   { num: '03', name: 'Endpoint Mapper', desc: 'Maps each endpoint to an MCP tool definition' },
   { num: '04', name: 'Auth Analyzer', desc: 'Detects authentication type and configures headers' },
-  { num: '05', name: 'Code Generator', desc: 'Generates secure Python or TypeScript MCP server code' },
+  { num: '05', name: 'MCP Translator', desc: 'Formalizes tool schemas with JSON Schema input definitions' },
+  { num: '06', name: 'Code Generator', desc: 'Generates secure Python or TypeScript MCP server code' },
+  { num: '07', name: 'Validator', desc: 'Reviews generated code for syntax errors and MCP compliance' },
+  { num: '08', name: 'Docs Generator', desc: 'Writes README with setup instructions, tool list, and Claude Desktop config' },
 ];
 
 export default function Home() {
@@ -21,7 +24,7 @@ export default function Home() {
             API to MCP<br className="hidden md:block" /> in seconds.
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mb-10">
-            Paste any OpenAPI spec. Watch 5 AI agents transform it into a production-ready MCP server, live.
+            Paste any OpenAPI spec, drop a GitHub URL, or fill a form. Watch 8 AI agents transform it into a production-ready MCP server, live.
           </p>
           <div className="flex items-center gap-6 flex-wrap">
             <Link
@@ -41,7 +44,7 @@ export default function Home() {
       <div className="px-6 py-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
           <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-12">
-            5-Agent Pipeline
+            8-Agent Pipeline
           </p>
           <div>
             {AGENTS.map((agent, i) => (
@@ -73,8 +76,8 @@ export default function Home() {
             {[
               {
                 n: '1',
-                title: 'Paste your spec',
-                body: 'OpenAPI 3.0, Swagger 2.0, or plain text. Click Load Sample to see it in action.',
+                title: 'Choose your input',
+                body: 'OpenAPI/Swagger JSON, plain text, GitHub repo URL, API docs URL, file upload, or fill endpoints manually.',
               },
               {
                 n: '2',
@@ -84,7 +87,7 @@ export default function Home() {
               {
                 n: '3',
                 title: 'Download and run',
-                body: 'Get a complete MCP server with error handling, auth config, and a one-click setup guide.',
+                body: 'Get a complete MCP server plus a generated README with setup instructions and Claude Desktop config.',
               },
             ].map(({ n, title, body }) => (
               <div key={n}>
