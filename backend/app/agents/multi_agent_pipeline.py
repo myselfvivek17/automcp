@@ -616,14 +616,15 @@ class CodeGeneratorAgent(BaseAgent):
         mcp_tools = input_data.get("mcp_tools", [])
         auth_config = input_data.get("auth_config", {})
         base_url = input_data.get("base_url", "")
+        server_name = input_data.get("mcp_schema", {}).get("server_name", "mcp-server")
 
         await self.send_update("processing", None, 0.2, f"Generating {language} MCP server...", callback)
         await asyncio.sleep(0.2)
 
         if language == "python":
-            code = await self._generate_python_code(mcp_tools, auth_config, base_url, callback)
+            code = await self._generate_python_code(mcp_tools, auth_config, base_url, server_name, callback)
         elif language == "typescript":
-            code = await self._generate_typescript_code(mcp_tools, auth_config, base_url, callback)
+            code = await self._generate_typescript_code(mcp_tools, auth_config, base_url, server_name, callback)
         else:
             code = f"# Language '{language}' not supported"
 
@@ -640,62 +641,161 @@ class CodeGeneratorAgent(BaseAgent):
 
     # ---- Python -----------------------------------------------------------
 
-    async def _generate_python_code(self, mcp_tools, auth_config, base_url, callback=None) -> str:
+    async def _generate_python_code(self, mcp_tools, auth_config, base_url, server_name="mcp-server", callback=None) -> str:
         await self.send_update("processing", None, 0.45, "Asking AI to write the MCP server...", callback)
-        llm_code = await self._llm_generate_python(mcp_tools, base_url)
+        llm_code = await self._llm_generate_python(mcp_tools, auth_config, base_url, server_name)
         if llm_code:
             await self.send_update("processing", None, 0.9, "AI-generated Python code ready", callback)
             return llm_code
         await self.send_update("processing", None, 0.7, "Building from template...", callback)
-        return self._template_python(mcp_tools, base_url)
+        return self._template_python(mcp_tools, auth_config, base_url, server_name)
 
-    async def _llm_generate_python(self, mcp_tools: List[Dict], base_url: str) -> Optional[str]:
-        tools_json = json.dumps(mcp_tools, indent=2)
-        prompt = f"""Generate a complete Python MCP server using the FastMCP framework.
+    @staticmethod
+    def _auth_python(auth_config: Dict) -> tuple:
+        """Returns (env_var_line, headers_expr, env_var_name)."""
+        auth_type = auth_config.get("type", "bearer")
+        auth_name = auth_config.get("name", "Authorization")
+        auth_scheme = auth_config.get("scheme", "Bearer")
+        auth_location = auth_config.get("location", "header")
+        if auth_type == "none":
+            return ("", "{}", "")
+        env_name = "API_KEY"
+        env_line = f'{env_name} = os.environ.get("{env_name}", "")'
+        if auth_type == "api_key" and auth_location == "header":
+            headers = '{' + f'"{auth_name}": {env_name}' + '}'
+        else:
+            headers = '{' + f'"{auth_name}": f"{auth_scheme} {{{env_name}}}"' + '}'
+        return (env_line, headers, env_name)
 
+    @staticmethod
+    def _schema_to_python_type(schema_type: str) -> str:
+        return {"integer": "int", "number": "float", "boolean": "bool"}.get(schema_type, "str")
+
+    async def _llm_generate_python(self, mcp_tools: List[Dict], auth_config: Dict, base_url: str, server_name: str) -> Optional[str]:
+        env_line, headers_expr, env_name = self._auth_python(auth_config)
+
+        # Build compact tool summary with typed params from inputSchema
+        tool_specs = []
+        for t in mcp_tools[:20]:
+            props = t.get("inputSchema", {}).get("properties", {})
+            required_set = set(t.get("inputSchema", {}).get("required", []))
+            params = []
+            for pname, pschema in props.items():
+                ptype = self._schema_to_python_type(pschema.get("type", "string"))
+                default = "" if ptype == "str" else ("0" if ptype in ("int", "float") else "False")
+                if pname in required_set:
+                    params.append(f"{pname}: {ptype}")
+                else:
+                    params.append(f'{pname}: {ptype} = {repr(default) if ptype == "str" else default}')
+            tool_specs.append({
+                "name": t["name"],
+                "description": t.get("description", ""),
+                "method": t.get("method", "GET"),
+                "endpoint": t.get("endpoint", "/"),
+                "signature": ", ".join(params),
+                "path_params": [p for p in re.findall(r"\{(\w+)\}", t.get("endpoint", ""))],
+            })
+
+        tools_json = json.dumps(tool_specs, indent=2)
+        auth_note = f"headers = {headers_expr}" if headers_expr != "{}" else "headers = {}"
+
+        prompt = f"""Generate a complete runnable Python MCP server.
+
+Server name: {server_name}
 Base URL: {base_url}
-Tools to implement:
+
+Tools:
 {tools_json}
 
-Requirements:
-- Import: from mcp.server.fastmcp import FastMCP
-- Import: import os, httpx
-- Set BASE_URL = "{base_url}"
-- Set API_KEY = os.environ.get("API_KEY", "")
-- Create mcp = FastMCP("mcp-server")
-- Each tool: @mcp.tool() decorator on an async function with typed parameters
-- Docstring with brief description and Args: section per parameter
-- HTTP calls: httpx.AsyncClient(timeout=30.0), call resp.raise_for_status(), return resp.text
-- Last two lines: if __name__ == "__main__": / (4 spaces) mcp.run(transport="stdio")
+EXACT code structure to follow:
 
-Return ONLY Python code. No markdown fences, no explanation."""
+```python
+from mcp.server.fastmcp import FastMCP
+import os
+import httpx
+import json
 
-        raw = await self._call_llm(prompt, max_tokens=3000)
+BASE_URL = "{base_url}"
+{env_line}
+
+mcp = FastMCP("{server_name}")
+
+
+@mcp.tool()
+async def example_tool(pet_id: int, status: str = "") -> str:
+    \"\"\"Short description of what this tool does.
+
+    Args:
+        pet_id: The pet identifier.
+        status: Filter by status (optional).
+    \"\"\"
+    {auth_note}
+    params = {{k: v for k, v in {{"status": status}}.items() if v}}
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.get(
+            f"{{BASE_URL}}/pet/{{pet_id}}",
+            headers=headers,
+            params=params or None,
+        )
+        resp.raise_for_status()
+        try:
+            return json.dumps(resp.json(), indent=2)
+        except Exception:
+            return resp.text
+
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+```
+
+Rules — follow exactly:
+1. Implement ALL {len(mcp_tools)} tools from the list above
+2. Use the exact signature from each tool's "signature" field — types are already correct
+3. Path params (in endpoint as {{param}}): use in f-string URL — f"{{BASE_URL}}{{}}"
+4. Query params: collect as dict, filter empty values, pass as params=
+5. POST/PUT/PATCH: add `body: dict = None`, pass `json=body` to the client call
+6. Auth header every tool: {auth_note}
+7. Always: resp.raise_for_status(), then json.dumps(resp.json()) with fallback resp.text
+8. No markdown fences in output
+
+Return ONLY Python code starting with `from mcp.server.fastmcp import FastMCP`."""
+
+        raw = await self._call_llm(prompt, max_tokens=4000)
         if raw and "FastMCP" in raw and "@mcp.tool()" in raw:
             raw = re.sub(r"^```python\s*\n?", "", raw.strip())
+            raw = re.sub(r"^```\s*\n?", "", raw.strip())
             raw = re.sub(r"\n?```$", "", raw.strip())
             return raw.strip()
         return None
 
-    def _template_python(self, mcp_tools: List[Dict], base_url: str) -> str:
+    def _template_python(self, mcp_tools: List[Dict], auth_config: Dict, base_url: str, server_name: str = "mcp-server") -> str:
+        env_line, headers_expr, env_name = self._auth_python(auth_config)
+        install_env = f'export {env_name}="your-api-key"' if env_name else ""
         lines = [
             '"""',
-            "MCP Server — Auto-generated by AutoMCP",
+            f"MCP Server — {server_name}",
             f"Base URL: {base_url}",
             "",
             "Setup:",
-            '    pip install mcp httpx',
-            '    export API_KEY="your-api-key"',
+            '    pip install "mcp[cli]" httpx',
+        ]
+        if install_env:
+            lines.append(f"    {install_env}")
+        lines += [
             "    python mcp_server.py",
             '"""',
             "import os",
             "import httpx",
+            "import json",
             "from mcp.server.fastmcp import FastMCP",
             "",
             f'BASE_URL = "{base_url}"',
-            'API_KEY = os.environ.get("API_KEY", "")',
+        ]
+        if env_line:
+            lines.append(env_line)
+        lines += [
             "",
-            'mcp = FastMCP("auto-generated-mcp-server")',
+            f'mcp = FastMCP("{server_name}")',
             "",
         ]
 
@@ -710,8 +810,19 @@ Return ONLY Python code. No markdown fences, no explanation."""
             path_params = [p["name"] for p in params if p.get("in") == "path"]
             query_params = [p["name"] for p in params if p.get("in") == "query"]
 
-            sig_parts = [f"{p}: str" for p in path_params]
-            sig_parts += [f'{p}: str = ""' for p in query_params]
+            props = tool.get("inputSchema", {}).get("properties", {})
+            required_set = set(tool.get("inputSchema", {}).get("required", []))
+
+            sig_parts = []
+            for p in path_params:
+                ptype = self._schema_to_python_type(props.get(p, {}).get("type", "string"))
+                sig_parts.append(f"{p}: {ptype}")
+            for p in query_params:
+                ptype = self._schema_to_python_type(props.get(p, {}).get("type", "string"))
+                if p in required_set:
+                    sig_parts.append(f"{p}: {ptype}")
+                else:
+                    sig_parts.append(f'{p}: {ptype} = ""')
             if has_body:
                 sig_parts.append("body: dict = None")
             sig = ", ".join(sig_parts)
@@ -720,18 +831,19 @@ Return ONLY Python code. No markdown fences, no explanation."""
 
             doc = [f'    """{desc}', "", "    Args:"]
             for p in path_params:
-                doc.append(f"        {p}: Path parameter")
+                doc.append(f"        {p}: {props.get(p, {}).get('description', 'Path parameter')}")
             for p in query_params:
-                doc.append(f"        {p}: Query parameter (optional)")
+                doc.append(f"        {p}: {props.get(p, {}).get('description', 'Query parameter')} (optional)")
             if has_body:
                 doc.append("        body: Request body as dict")
             doc.append('    """')
 
+            _, headers_expr, _ = self._auth_python({})
             lines += ["@mcp.tool()", f"async def {fn}({sig}) -> str:"]
             lines += doc
 
             if query_params:
-                qp = "{" + ", ".join(f'"{p}": {p}' for p in query_params) + "}"
+                qp = "{" + ", ".join(f'"{p}": str({p})' for p in query_params) + "}"
                 lines.append(f"    query = {{k: v for k, v in {qp}.items() if v}}")
             else:
                 lines.append("    query = {}")
@@ -743,11 +855,14 @@ Return ONLY Python code. No markdown fences, no explanation."""
 
             lines += [
                 f"    url = {url_expr}",
-                '    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}',
+                f"    headers = {headers_expr}",
                 "    async with httpx.AsyncClient(timeout=30.0) as client:",
                 f"        resp = await {call}",
                 "        resp.raise_for_status()",
-                "        return resp.text",
+                "        try:",
+                "            return json.dumps(resp.json(), indent=2)",
+                "        except Exception:",
+                "            return resp.text",
                 "",
             ]
 
@@ -756,62 +871,153 @@ Return ONLY Python code. No markdown fences, no explanation."""
 
     # ---- TypeScript -------------------------------------------------------
 
-    async def _generate_typescript_code(self, mcp_tools, auth_config, base_url, callback=None) -> str:
+    async def _generate_typescript_code(self, mcp_tools, auth_config, base_url, server_name="mcp-server", callback=None) -> str:
         await self.send_update("processing", None, 0.45, "Asking AI to write the MCP server...", callback)
-        llm_code = await self._llm_generate_typescript(mcp_tools, base_url)
+        llm_code = await self._llm_generate_typescript(mcp_tools, auth_config, base_url, server_name)
         if llm_code:
             await self.send_update("processing", None, 0.9, "AI-generated TypeScript code ready", callback)
             return llm_code
         await self.send_update("processing", None, 0.7, "Building from template...", callback)
-        return self._template_typescript(mcp_tools, base_url)
+        return self._template_typescript(mcp_tools, auth_config, base_url, server_name)
 
-    async def _llm_generate_typescript(self, mcp_tools: List[Dict], base_url: str) -> Optional[str]:
-        tools_json = json.dumps(mcp_tools, indent=2)
-        prompt = f"""Generate a complete TypeScript MCP server using the McpServer SDK.
+    @staticmethod
+    def _auth_typescript(auth_config: Dict) -> tuple:
+        """Returns (env_var_line, headers_expr, env_var_name)."""
+        auth_type = auth_config.get("type", "bearer")
+        auth_name = auth_config.get("name", "Authorization")
+        auth_scheme = auth_config.get("scheme", "Bearer")
+        auth_location = auth_config.get("location", "header")
+        if auth_type == "none":
+            return ("", "{}", "")
+        env_name = "API_KEY"
+        env_line = f'const {env_name} = process.env.{env_name} ?? "";'
+        if auth_type == "api_key" and auth_location == "header":
+            headers = '{' + f' "{auth_name}": {env_name}, "Content-Type": "application/json"' + ' }'
+        else:
+            headers = '{' + f' "{auth_name}": `{auth_scheme} ${{{env_name}}}`, "Content-Type": "application/json"' + ' }'
+        return (env_line, headers, env_name)
 
+    @staticmethod
+    def _schema_to_zod(schema_type: str, required: bool, description: str) -> str:
+        base = {"integer": "z.number().int()", "number": "z.number()", "boolean": "z.boolean()"}.get(schema_type, "z.string()")
+        if description:
+            base += f'.describe("{description}")'
+        if not required:
+            base += ".optional()"
+        return base
+
+    async def _llm_generate_typescript(self, mcp_tools: List[Dict], auth_config: Dict, base_url: str, server_name: str) -> Optional[str]:
+        env_line, headers_expr, env_name = self._auth_typescript(auth_config)
+
+        tool_specs = []
+        for t in mcp_tools[:20]:
+            props = t.get("inputSchema", {}).get("properties", {})
+            required_set = set(t.get("inputSchema", {}).get("required", []))
+            schema_fields = {
+                pname: self._schema_to_zod(pschema.get("type", "string"), pname in required_set, pschema.get("description", ""))
+                for pname, pschema in props.items()
+            }
+            tool_specs.append({
+                "name": t["name"],
+                "description": t.get("description", ""),
+                "method": t.get("method", "GET"),
+                "endpoint": t.get("endpoint", "/"),
+                "inputSchema": schema_fields,
+                "path_params": re.findall(r"\{(\w+)\}", t.get("endpoint", "")),
+            })
+
+        tools_json = json.dumps(tool_specs, indent=2)
+
+        prompt = f"""Generate a complete runnable TypeScript MCP server.
+
+Server name: {server_name}
 Base URL: {base_url}
-Tools to implement:
+
+Tools:
 {tools_json}
 
-Requirements:
-- Import McpServer from "@modelcontextprotocol/sdk/server/mcp.js"
-- Import StdioServerTransport from "@modelcontextprotocol/sdk/server/stdio.js"
-- Import z from "zod"
-- const BASE_URL = "{base_url}"; const API_KEY = process.env.API_KEY ?? "";
-- const server = new McpServer({{ name: "mcp-server", version: "1.0.0" }});
-- Each tool: server.registerTool(name, {{ description, inputSchema: {{ param: z.string().describe("...") }} }}, async (args) => {{ ... }})
-- Handler returns: {{ content: [{{ type: "text", text: responseText }}] }}
-- HTTP calls: fetch() with AbortSignal.timeout(30000), throw on !r.ok
-- Last two lines: const transport = new StdioServerTransport(); / await server.connect(transport);
+EXACT code structure to follow:
 
-Return ONLY TypeScript code. No markdown fences, no explanation."""
+```typescript
+import {{ McpServer }} from "@modelcontextprotocol/sdk/server/mcp.js";
+import {{ StdioServerTransport }} from "@modelcontextprotocol/sdk/server/stdio.js";
+import {{ z }} from "zod";
 
-        raw = await self._call_llm(prompt, max_tokens=3000)
+const BASE_URL = "{base_url}";
+{env_line}
+
+const server = new McpServer({{ name: "{server_name}", version: "1.0.0" }});
+
+server.registerTool(
+  "example_tool",
+  {{
+    description: "Short description",
+    inputSchema: {{
+      pet_id: z.number().int().describe("The pet identifier"),
+      status: z.string().optional().describe("Filter by status"),
+    }},
+  }},
+  async ({{ pet_id, status }}) => {{
+    const headers = {headers_expr};
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    const url = params.toString()
+      ? `${{BASE_URL}}/pet/${{pet_id}}?${{params}}`
+      : `${{BASE_URL}}/pet/${{pet_id}}`;
+    const r = await fetch(url, {{ method: "GET", headers, signal: AbortSignal.timeout(30000) }});
+    if (!r.ok) throw new Error(`HTTP ${{r.status}}: ${{await r.text()}}`);
+    const data = await r.json().catch(() => r.text());
+    return {{ content: [{{ type: "text", text: typeof data === "string" ? data : JSON.stringify(data, null, 2) }}] }};
+  }}
+);
+
+async function main() {{
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}}
+main().catch(console.error);
+```
+
+Rules:
+1. Implement ALL {len(mcp_tools)} tools from the list — use each tool's "inputSchema" field for Zod types
+2. Auth headers every tool: {headers_expr}
+3. Path params: interpolate into URL template literal
+4. Query params: URLSearchParams, only append if value is defined/non-empty
+5. POST/PUT/PATCH: add `body: z.record(z.unknown()).optional()` to inputSchema, pass `body: body ? JSON.stringify(body) : undefined` to fetch
+6. Always: throw if !r.ok, return json with JSON.stringify fallback
+7. Wrap in async main(), call main().catch(console.error) at the end
+
+Return ONLY TypeScript code starting with the import statements. No markdown fences."""
+
+        raw = await self._call_llm(prompt, max_tokens=4000)
         if raw and "McpServer" in raw and "registerTool" in raw:
             raw = re.sub(r"^```typescript\s*\n?", "", raw.strip())
             raw = re.sub(r"^```ts\s*\n?", "", raw.strip())
+            raw = re.sub(r"^```\s*\n?", "", raw.strip())
             raw = re.sub(r"\n?```$", "", raw.strip())
             return raw.strip()
         return None
 
-    def _template_typescript(self, mcp_tools: List[Dict], base_url: str) -> str:
+    def _template_typescript(self, mcp_tools: List[Dict], auth_config: Dict, base_url: str, server_name: str = "mcp-server") -> str:
+        env_line, headers_expr, env_name = self._auth_typescript(auth_config)
+        install_env = f"  {env_name}=your-key npx ts-node mcp_server.ts" if env_name else "  npx ts-node mcp_server.ts"
         lines = [
             "/**",
-            " * MCP Server — Auto-generated by AutoMCP",
+            f" * MCP Server — {server_name}",
             f" * Base URL: {base_url}",
             " *",
             " * Setup:",
             " *   npm install @modelcontextprotocol/sdk zod",
-            " *   API_KEY=your-key npx ts-node mcp_server.ts",
+            f" * {install_env}",
             " */",
             'import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";',
             'import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";',
             'import { z } from "zod";',
             "",
             f'const BASE_URL = "{base_url}";',
-            'const API_KEY = process.env.API_KEY ?? "";',
+            env_line,
             "",
-            'const server = new McpServer({ name: "auto-generated-mcp-server", version: "1.0.0" });',
+            f'const server = new McpServer({{ name: "{server_name}", version: "1.0.0" }});',
             "",
         ]
 
@@ -826,15 +1032,24 @@ Return ONLY TypeScript code. No markdown fences, no explanation."""
             path_params = [p for p in params if p.get("in") == "path"]
             query_params = [p for p in params if p.get("in") == "query"]
 
+            props = tool.get("inputSchema", {}).get("properties", {})
+            required_set = set(tool.get("inputSchema", {}).get("required", []))
+
             schema_entries: List[str] = []
             handler_args: List[str] = []
             for p in path_params:
                 pname = p.get("name", "param")
-                schema_entries.append(f'    {pname}: z.string().describe("Path parameter: {pname}"),')
+                pdesc = props.get(pname, {}).get("description", f"Path: {pname}")
+                ptype = props.get(pname, {}).get("type", "string")
+                zod = self._schema_to_zod(ptype, True, pdesc)
+                schema_entries.append(f'    {pname}: {zod},')
                 handler_args.append(pname)
             for p in query_params:
                 pname = p.get("name", "param")
-                schema_entries.append(f'    {pname}: z.string().optional().describe("Query parameter: {pname}"),')
+                pdesc = props.get(pname, {}).get("description", f"Query: {pname}")
+                ptype = props.get(pname, {}).get("type", "string")
+                zod = self._schema_to_zod(ptype, pname in required_set, pdesc)
+                schema_entries.append(f'    {pname}: {zod},')
                 handler_args.append(pname)
             if has_body:
                 schema_entries.append('    body: z.record(z.unknown()).optional().describe("Request body"),')
@@ -845,7 +1060,6 @@ Return ONLY TypeScript code. No markdown fences, no explanation."""
                 pname = p.get("name", "param")
                 ts_path = ts_path.replace("{" + pname + "}", "${" + pname + "}")
             url_expr = f"`${{BASE_URL}}{ts_path}`"
-
             destructure = "{ " + ", ".join(handler_args) + " }" if handler_args else "{}"
 
             lines += [
@@ -858,14 +1072,15 @@ Return ONLY TypeScript code. No markdown fences, no explanation."""
                 f'    }},',
                 f'  }},',
                 f'  async ({destructure}) => {{',
+                f'    const headers = {headers_expr};',
                 f'    const url = {url_expr};',
             ]
 
             if query_params:
-                qparts = ", ".join(f'"{p.get("name","p")}": {p.get("name","p")}' for p in query_params)
+                qparts = ", ".join(f'"{p.get("name","p")}": String({p.get("name","p")} ?? "")' for p in query_params)
                 lines += [
                     f'    const query = new URLSearchParams();',
-                    f'    const qp: Record<string, string | undefined> = {{ {qparts} }};',
+                    f'    const qp: Record<string, string> = {{ {qparts} }};',
                     f'    for (const [k, v] of Object.entries(qp)) if (v) query.set(k, v);',
                     f'    const reqUrl = query.toString() ? `${{url}}?${{query}}` : url;',
                 ]
@@ -873,22 +1088,23 @@ Return ONLY TypeScript code. No markdown fences, no explanation."""
             else:
                 req_url = "url"
 
-            fetch_opts = f'method: "{method}", headers: {{ "Authorization": `Bearer ${{API_KEY}}`, "Content-Type": "application/json" }}'
-            if has_body:
-                fetch_opts += ", body: body ? JSON.stringify(body) : undefined"
-
+            fetch_body = ", body: body ? JSON.stringify(body) : undefined" if has_body else ""
             lines += [
-                f'    const r = await fetch({req_url}, {{ {fetch_opts}, signal: AbortSignal.timeout(30000) }});',
+                f'    const r = await fetch({req_url}, {{ method: "{method}", headers{fetch_body}, signal: AbortSignal.timeout(30000) }});',
                 f'    if (!r.ok) throw new Error(`HTTP ${{r.status}}: ${{await r.text()}}`);',
-                f'    return {{ content: [{{ type: "text", text: await r.text() }}] }};',
+                f'    const data = await r.json().catch(() => r.text());',
+                f'    return {{ content: [{{ type: "text", text: typeof data === "string" ? data : JSON.stringify(data, null, 2) }}] }};',
                 f'  }}',
                 f');',
                 "",
             ]
 
         lines += [
-            "const transport = new StdioServerTransport();",
-            "await server.connect(transport);",
+            "async function main() {",
+            "  const transport = new StdioServerTransport();",
+            "  await server.connect(transport);",
+            "}",
+            "main().catch(console.error);",
         ]
         return "\n".join(lines)
 
@@ -1014,24 +1230,52 @@ class ValidatorAgent(BaseAgent):
         return {"validation_result": result, "code": final_code}
 
     async def _validate(self, code: str, language: str) -> Dict:
-        prompt = f"""Review this {language} MCP server code and fix any issues.
+        checks_python = """
+- `from mcp.server.fastmcp import FastMCP` present
+- `import httpx` and `import json` present
+- `mcp = FastMCP(...)` present
+- Every tool has `@mcp.tool()` decorator
+- Every tool function is `async def`
+- Every tool returns `str`
+- `resp.raise_for_status()` called before returning
+- `if __name__ == "__main__": mcp.run(transport="stdio")` at end"""
 
+        checks_typescript = """
+- `import { McpServer }` from correct MCP SDK path
+- `import { StdioServerTransport }` present
+- `import { z }` from "zod" present
+- `new McpServer(...)` present
+- Every tool uses `server.registerTool(...)`
+- Handler returns `{ content: [{ type: "text", text: ... }] }`
+- `AbortSignal.timeout(30000)` on fetch
+- `async function main()` with `server.connect(transport)` at end"""
+
+        checks = checks_python if language == "python" else checks_typescript
+
+        prompt = f"""You are a code reviewer for {language} MCP servers. Review the code below and fix ALL issues.
+
+Checklist — verify each item:{checks}
+
+Code to review:
 ```{language}
-{code[:3000]}
+{code[:4000]}
 ```
 
-Check for: missing imports, syntax errors, undefined variables, incorrect MCP server setup.
-
-Return ONLY valid JSON:
+Return ONLY valid JSON — no prose, no fences:
 {{
   "valid": true,
-  "issues": ["issue 1", "issue 2"],
+  "issues": [],
   "fixed_code": null
 }}
 
-If there are issues set fixed_code to the complete corrected code. If code looks correct set fixed_code to null."""
+Rules:
+- Set "valid": false if ANY checklist item fails
+- List each failing check in "issues" array (short phrases)
+- If issues found: set "fixed_code" to the COMPLETE corrected {language} code as a string
+- If no issues: set "fixed_code": null
+- Do NOT truncate fixed_code — it must be the full file"""
 
-        result = await self._call_llm(prompt, max_tokens=4000)
+        result = await self._call_llm(prompt, max_tokens=4500)
         if result:
             parsed = self._extract_json(result)
             if parsed and "valid" in parsed:
@@ -1082,34 +1326,77 @@ class DocsGeneratorAgent(BaseAgent):
         return {"readme": readme}
 
     async def _generate_readme(self, server_name: str, tools: List[Dict], auth_config: Dict, base_url: str, language: str) -> str:
-        tool_list = "\n".join(f"- `{t['name']}`: {t.get('description', '')}" for t in tools[:15])
+        ext = "py" if language == "python" else "ts"
+        install = 'pip install "mcp[cli]" httpx' if language == "python" else "npm install @modelcontextprotocol/sdk zod"
+        run_cmd = f"python mcp_server.{ext}" if language == "python" else f"npx ts-node mcp_server.{ext}"
+        auth_type = auth_config.get("type", "none")
+        env_name = "API_KEY"
+        env_setup = f'export {env_name}="your-api-key"' if auth_type != "none" else ""
+        claude_env = f', "env": {{"{env_name}": "your-api-key"}}' if auth_type != "none" else ""
+        tool_list = "\n".join(f"- `{t['name']}`: {t.get('description', '')}" for t in tools[:20])
 
-        prompt = f"""Write a README.md for this MCP server.
+        prompt = f"""Write a complete README.md for this MCP server. Use real values — no placeholders like <your-key>.
 
-Name: {server_name}
+Server name: {server_name}
 Base URL: {base_url}
 Language: {language}
-Auth type: {auth_config.get('type', 'none')}
-Tools:
+Auth: {auth_type}{f" ({auth_config.get('name', '')})" if auth_type != "none" else ""}
+Install: {install}
+Run: {run_cmd}
+{f"Env var: {env_name}" if env_setup else "No auth required"}
+
+Tools ({len(tools)} total, showing first 20):
 {tool_list}
 
-Include these sections in order:
-1. Title + one-line description
-2. Setup (install command + env vars)
-3. Run command
-4. Available Tools table (name | description columns)
-5. Claude Desktop config JSON block
-6. Quick usage example
+Write these sections in order — use real commands from above:
 
-Write clean Markdown only. No extra commentary."""
+# {server_name}
+
+One-line description of what this MCP server does.
+
+## Setup
+
+```bash
+{install}
+{env_setup}
+```
+
+## Run
+
+```bash
+{run_cmd}
+```
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+(one row per tool)
+
+## Claude Desktop Config
+
+```json
+{{
+  "mcpServers": {{
+    "{server_name}": {{
+      "command": "{"python" if language == "python" else "npx"}",
+      "args": [{"mcp_server.py" if language == "python" else "ts-node mcp_server.ts"}]{claude_env}
+    }}
+  }}
+}}
+```
+
+## Example Usage
+
+Show one realistic example of calling a tool through Claude.
+
+Write clean Markdown only."""
 
         result = await self._call_llm(prompt, max_tokens=2000)
         if result and len(result) > 200:
             return result
 
-        ext = "py" if language == "python" else "ts"
-        install = "pip install mcp httpx" if language == "python" else "npm install @modelcontextprotocol/sdk"
-        run_cmd = f"python mcp_server.{ext}" if language == "python" else f"npx ts-node mcp_server.{ext}"
+        # Fallback template
         tool_rows = "\n".join(f"| `{t['name']}` | {t.get('description', '-')} |" for t in tools)
         return f"""# {server_name}
 
