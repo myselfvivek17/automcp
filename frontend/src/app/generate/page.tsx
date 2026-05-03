@@ -509,7 +509,7 @@ export default function GeneratePage() {
               <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>Input Type</label>
-                  <select value={inputType} onChange={(e) => setInputType(e.target.value)} className={INPUT_CLS}>
+                  <select value={inputType} onChange={(e) => setInputType(e.target.value)} className={INPUT_CLS} aria-label="Input Type">
                     <option value="text">Plain Text</option>
                     <option value="url">URL (API Docs Page)</option>
                     <option value="github">GitHub Repository</option>
@@ -610,7 +610,7 @@ export default function GeneratePage() {
                     {formEndpoints.map((ep, i) => (
                       <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <select value={ep.method} onChange={(e) => updateEndpoint(i, 'method', e.target.value)}
-                          style={{ width: 96, padding: '8px 12px', border: '1px solid var(--rule-strong)', borderRadius: 'var(--radius)', fontSize: '13px', fontFamily: 'var(--mono)', background: 'var(--paper)', color: 'var(--ink)' }}>
+                          style={{ width: 96, padding: '8px 12px', border: '1px solid var(--rule-strong)', borderRadius: 'var(--radius)', fontSize: '13px', fontFamily: 'var(--mono)', background: 'var(--paper)', color: 'var(--ink)' }} aria-label={`HTTP method for endpoint ${i + 1}`}>
                           {['GET','POST','PUT','DELETE','PATCH'].map(m => <option key={m}>{m}</option>)}
                         </select>
                         <input type="text" placeholder="/path/{id}" value={ep.path}
