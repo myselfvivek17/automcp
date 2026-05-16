@@ -3,6 +3,7 @@ from app.providers.base import BaseAIProvider
 from app.providers.watsonx import WatsonxProvider
 from app.providers.openai_provider import OpenAIProvider
 from app.providers.anthropic_provider import AnthropicProvider
+from app.providers.openrouter import OpenRouterProvider
 
 
 class ProviderFactory:
@@ -15,4 +16,6 @@ class ProviderFactory:
             return OpenAIProvider(api_key=api_key, **kwargs)
         if p == "anthropic":
             return AnthropicProvider(api_key=api_key, **kwargs)
+        if p == "openrouter":
+            return OpenRouterProvider(api_key=api_key, **kwargs)
         return None

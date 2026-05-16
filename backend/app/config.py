@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     google_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
 
     # CORS
     allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:3001"]

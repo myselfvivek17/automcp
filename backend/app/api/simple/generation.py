@@ -106,6 +106,14 @@ async def list_providers():
             {"id": "openai", "name": "OpenAI", "models": ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]},
             {"id": "anthropic", "name": "Anthropic Claude", "models": ["claude-opus-4-7", "claude-sonnet-4-6"]},
             {"id": "google", "name": "Google Gemini", "models": ["gemini-1.5-pro", "gemini-1.5-flash"]},
+            {"id": "openrouter", "name": "OpenRouter", "models": [
+                "meta-llama/llama-3.3-70b-instruct:free",
+                "mistralai/mistral-7b-instruct:free",
+                "qwen/qwen-2.5-72b-instruct:free",
+                "openai/gpt-4o",
+                "anthropic/claude-sonnet-4-5",
+                "google/gemini-pro-1.5",
+            ]},
         ]
     }
 
@@ -125,6 +133,8 @@ def _build_provider_service(req: GenerateRequest) -> Optional[ProviderService]:
             api_key = settings.anthropic_api_key
         elif provider == "google" and settings.google_api_key:
             api_key = settings.google_api_key
+        elif provider == "openrouter" and settings.openrouter_api_key:
+            api_key = settings.openrouter_api_key
 
     if not api_key:
         return None
