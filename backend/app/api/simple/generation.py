@@ -6,9 +6,7 @@ from typing import Optional, Dict
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from app.config import settings
 from app.agents.multi_agent_pipeline import MultiAgentPipeline
-from app.services.provider_service import ProviderService
 
 router = APIRouter(prefix="/generate", tags=["generation"])
 
@@ -16,23 +14,19 @@ router = APIRouter(prefix="/generate", tags=["generation"])
 class AgentConfig(BaseModel):
     provider: str = "watsonx"
     model: str = ""
-    apiKey: str = ""
 
 
 class GenerateRequest(BaseModel):
     input_type: str
     content: str
     language: str = "python"
-    api_key: Optional[str] = None
-    provider: str = "watsonx"
     agent_configs: Optional[Dict[str, AgentConfig]] = None
 
 
 @router.post("")
 async def generate(req: GenerateRequest):
     """Synchronous generation endpoint"""
-    provider_service = _build_provider_service(req)
-    pipeline = MultiAgentPipeline(provider_service=provider_service)
+    pipeline = MultiAgentPipeline()
     result = await pipeline.run({
         "input_type": req.input_type,
         "content": req.content,
@@ -56,8 +50,7 @@ async def generate_stream(websocket: WebSocket):
             except Exception:
                 pass
 
-        provider_service = _build_provider_service(data)
-        pipeline = MultiAgentPipeline(provider_service=provider_service)
+        pipeline = MultiAgentPipeline()
         await pipeline.run(
             {
                 "input_type": data.input_type,
@@ -116,35 +109,3 @@ async def list_providers():
             ]},
         ]
     }
-
-
-def _build_provider_service(req: GenerateRequest) -> Optional[ProviderService]:
-    """Build a provider service from the request, or return None for mock generation"""
-    api_key = req.api_key
-    provider = req.provider
-
-    if not api_key:
-        # Try to get from settings
-        if provider == "watsonx" and settings.watsonx_api_key:
-            api_key = settings.watsonx_api_key
-        elif provider == "openai" and settings.openai_api_key:
-            api_key = settings.openai_api_key
-        elif provider == "anthropic" and settings.anthropic_api_key:
-            api_key = settings.anthropic_api_key
-        elif provider == "google" and settings.google_api_key:
-            api_key = settings.google_api_key
-        elif provider == "openrouter" and settings.openrouter_api_key:
-            api_key = settings.openrouter_api_key
-
-    if not api_key:
-        return None
-
-    try:
-        kwargs: dict = {}
-        if provider == "watsonx":
-            if settings.watsonx_project_id:
-                kwargs["project_id"] = settings.watsonx_project_id
-            kwargs["base_url"] = settings.watsonx_url
-        return ProviderService(provider=provider, api_key=api_key, **kwargs)
-    except Exception:
-        return None
