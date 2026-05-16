@@ -8,6 +8,7 @@ import time
 from app.config import settings
 from app.core.logging import setup_logging
 from app.api.simple.generation import router as generate_router
+from app.api.simple.keys import router as keys_router
 
 logger = setup_logging()
 
@@ -45,6 +46,7 @@ async def add_process_time_header(request: Request, call_next):
 
 
 app.include_router(generate_router, prefix="/api/simple")
+app.include_router(keys_router, prefix="/api/simple")
 
 
 @app.get("/health")
