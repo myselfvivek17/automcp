@@ -1,45 +1,34 @@
-/**
- * Simple API client for AutoMCP backend
- */
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-
-export interface Endpoint {
-  method: string;
-  path: string;
-  description: string;
+export interface ProviderStatus {
+  openai: boolean;
+  anthropic: boolean;
+  google: boolean;
+  openrouter: boolean;
+  watsonx: boolean;
 }
 
-export interface GenerateRequest {
-  name: string;
-  description: string;
-  endpoints: Endpoint[];
+export interface SaveKeyPayload {
+  provider: string;
+  key: string;
+  project_id?: string;
+  url?: string;
 }
 
-export interface GenerateResponse {
-  success: boolean;
-  code: string;
-  message: string;
-}
-
-/**
- * Generate MCP server code from API specification
- */
-export async function generateMCP(request: GenerateRequest): Promise<GenerateResponse> {
-  const response = await fetch(`${API_BASE_URL}/generation/generate`, {
+export async function saveProviderKey(payload: SaveKeyPayload): Promise<void> {
+  const res = await fetch(`${BACKEND_URL}/api/simple/keys`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || 'Failed to generate MCP code');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(err.detail || 'Failed to save key');
   }
-
-  return response.json();
 }
 
-// Made with Bob
+export async function getProviderStatus(): Promise<ProviderStatus> {
+  const res = await fetch(`${BACKEND_URL}/api/simple/keys/status`);
+  if (!res.ok) throw new Error('Failed to fetch key status');
+  return res.json();
+}
