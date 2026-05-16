@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { loadAgentConfigs } from '@/lib/agent-config';
+import { getProviderStatus, ProviderStatus } from '@/lib/api';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -246,8 +247,9 @@ export default function GeneratePage() {
   const [inputType, setInputType] = useState('text');
   const [content, setContent] = useState('');
   const [language, setLanguage] = useState('python');
-  const [apiKey, setApiKey] = useState('');
-  const [provider, setProvider] = useState('watsonx');
+  const [providerStatus, setProviderStatus] = useState<ProviderStatus>({
+    openai: false, anthropic: false, google: false, openrouter: false, watsonx: false,
+  });
 
   const [generating, setGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
@@ -271,6 +273,10 @@ export default function GeneratePage() {
       const raw = localStorage.getItem('automcp_last_generation');
       if (raw) setSavedSession(JSON.parse(raw));
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    getProviderStatus().then(setProviderStatus).catch(() => {});
   }, []);
 
   const restoreSession = () => {
@@ -358,13 +364,12 @@ export default function GeneratePage() {
 
     ws.onopen = () => {
       setOverallProgress(0);
+      const agentConfigs = loadAgentConfigs();
       ws.send(JSON.stringify({
         input_type: inputType,
         content,
         language,
-        api_key: apiKey || undefined,
-        provider,
-        agent_configs: loadAgentConfigs(),
+        agent_configs: agentConfigs,
       }));
     };
 
@@ -527,24 +532,31 @@ export default function GeneratePage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>AI Provider (Optional)</label>
-                  <select title="AI provider" value={provider} onChange={(e) => setProvider(e.target.value)} className={INPUT_CLS}>
-                    <option value="watsonx">IBM Watsonx.ai</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic Claude</option>
-                    <option value="google">Google Gemini</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>API Key (Optional)</label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Leave empty for mock generation"
-                    className={INPUT_CLS}
-                  />
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>Works without API key using mock responses</p>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--ink-2)', marginBottom: 8, fontFamily: 'var(--sans)' }}>AI Providers</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as any }}>
+                    {(['openrouter', 'openai', 'anthropic', 'watsonx'] as const).filter(p => providerStatus[p]).map(p => (
+                      <span key={p} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '3px 10px',
+                        background: '#e6f4ea',
+                        color: '#1a7f37',
+                        borderRadius: 'var(--radius)',
+                        fontSize: '12px',
+                        fontFamily: 'var(--sans)',
+                        fontWeight: 500,
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1a7f37', display: 'inline-block' }} />
+                        {p === 'openrouter' ? 'OpenRouter' : p === 'openai' ? 'OpenAI' : p === 'anthropic' ? 'Anthropic' : 'Watsonx'}
+                      </span>
+                    ))}
+                    {!Object.values(providerStatus).some(Boolean) && (
+                      <span style={{ fontSize: '12px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>
+                        No keys set —{' '}
+                        <a href="/settings" style={{ color: 'var(--accent)', textDecoration: 'none' }}>add in Settings</a>
+                        {' '}(pipeline still runs with deterministic fallback)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
