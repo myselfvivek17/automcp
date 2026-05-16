@@ -1567,7 +1567,7 @@ export API_KEY="your-api-key"
 class MultiAgentPipeline:
     def __init__(self, provider_service=None):
         self.provider_service = provider_service
-        self.agents = [
+        self._agents = [
             InputParserAgent(provider_service),
             SchemaExtractorAgent(provider_service),
             EndpointMapperAgent(provider_service),
@@ -1577,36 +1577,32 @@ class MultiAgentPipeline:
             ValidatorAgent(provider_service),
             DocsGeneratorAgent(provider_service),
         ]
-        self.total_agents = len(self.agents)
+        from app.agents.pipeline_graph import build_pipeline
+        self._graph = build_pipeline(self._agents)
 
     async def run(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
-        logger.info("Starting multi-agent pipeline...")
-        current_data = {**input_data}
-        agent_configs = input_data.get("agent_configs", {})
-
-        for i, agent in enumerate(self.agents):
-            logger.info(f"Running agent {i + 1}/{self.total_agents}: {agent.name}")
-            current_data["_agent_config"] = agent_configs.get(agent.name, {})
-            try:
-                result = await agent.process(current_data, callback)
-                current_data.update(result)
-            except Exception as e:
-                logger.error(f"Error in agent {agent.name}: {e}")
-                if callback:
-                    await callback(AgentMessage(
-                        agent.name, "error", None,
-                        (i + 1) / self.total_agents, f"Error: {str(e)}",
-                    ))
-                raise
+        logger.info("Starting LangGraph pipeline...")
+        initial_state = {
+            **input_data,
+            "_callback": callback,
+            "_provider_service": self.provider_service,
+        }
+        try:
+            final_state = await self._graph.ainvoke(initial_state)
+        except Exception as e:
+            logger.error(f"Pipeline error: {e}")
+            if callback:
+                await callback(AgentMessage("Pipeline", "error", None, 0.0, str(e)))
+            raise
 
         if callback:
             await callback(AgentMessage(
                 "Pipeline", "completed",
                 {
-                    "code": current_data.get("code", ""),
-                    "language": current_data.get("language", "python"),
-                    "readme": current_data.get("readme", ""),
+                    "code": final_state.get("code", ""),
+                    "language": final_state.get("language", "python"),
+                    "readme": final_state.get("readme", ""),
                 },
                 1.0, "Generation complete",
             ))
-        return current_data
+        return final_state

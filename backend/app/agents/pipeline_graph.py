@@ -1,5 +1,6 @@
 """Builds and compiles the LangGraph StateGraph for the 8-agent pipeline."""
 from langgraph.graph import StateGraph, END
+from app.agents.state import PipelineState
 
 
 def build_pipeline(agents: list):
@@ -21,7 +22,7 @@ def build_pipeline(agents: list):
     ]
     assert len(agents) == len(NODE_NAMES), f"Expected 8 agents, got {len(agents)}"
 
-    graph = StateGraph(dict)
+    graph = StateGraph(PipelineState)
 
     for name, agent in zip(NODE_NAMES, agents):
         graph.add_node(name, agent)
