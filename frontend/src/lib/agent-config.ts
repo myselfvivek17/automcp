@@ -42,11 +42,12 @@ export const MODELS_BY_PROVIDER: Record<string, string[]> = {
   google: ['gemini-1.5-pro', 'gemini-1.5-flash'],
   openrouter: [
     'meta-llama/llama-3.3-70b-instruct:free',
-    'mistralai/mistral-7b-instruct:free',
-    'qwen/qwen-2.5-72b-instruct:free',
-    'openai/gpt-4o',
-    'anthropic/claude-sonnet-4-5',
-    'google/gemini-pro-1.5',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'poolside/laguna-m.1:free',
+    'openai/gpt-oss-120b:free',
+    'z-ai/glm-4.5-air:free',
+    'minimax/minimax-m2.5:free',
+    'poolside/laguna-xs.2:free',
   ],
 };
 

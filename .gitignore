@@ -84,10 +84,6 @@ temp/
 # Docker
 .dockerignore
 
-# IBM Cloud
-.bluemix/
-manifest.yml
-
 # Generated code
 generated/
 output/
@@ -102,4 +98,16 @@ secrets/
 Thumbs.db
 .DS_Store
 
-# Made with Bob
+# Env templates — never commit
+.env.example
+*.env.example
+
+# Internal docs / AI tooling / planning
+docs/
+.claude/
+.mcp.json
+CLAUDE.md
+SUBMISSION.md
+
+# Build artifacts
+frontend/build-output.txt
