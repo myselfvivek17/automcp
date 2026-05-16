@@ -19,14 +19,18 @@ const AGENT_ORDER: AgentName[] = [
   'Schema Extractor',
   'Endpoint Mapper',
   'Auth Analyzer',
+  'MCP Translator',
   'Code Generator',
+  'Validator',
+  'Docs Generator',
 ];
 
 const PROVIDERS = [
-  { value: 'watsonx', label: 'IBM Watsonx.ai' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic Claude' },
-  { value: 'google', label: 'Google Gemini' },
+  { value: 'watsonx',    label: 'IBM Watsonx.ai' },
+  { value: 'openai',     label: 'OpenAI' },
+  { value: 'anthropic',  label: 'Anthropic Claude' },
+  { value: 'google',     label: 'Google Gemini' },
+  { value: 'openrouter', label: 'OpenRouter' },
 ];
 
 const PRESET_ICONS: Record<string, string> = {
