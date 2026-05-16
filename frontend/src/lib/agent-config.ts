@@ -1,7 +1,6 @@
 export interface AgentConfig {
   provider: string;
   model: string;
-  apiKey: string;
 }
 
 export type AgentName =
@@ -52,14 +51,14 @@ export const MODELS_BY_PROVIDER: Record<string, string[]> = {
 };
 
 export const DEFAULT_CONFIGS: AgentConfigs = {
-  'Input Parser':    { provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
-  'Schema Extractor':{ provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
-  'Endpoint Mapper': { provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
-  'Auth Analyzer':   { provider: 'watsonx', model: 'ibm/granite-4-h-small',        apiKey: '' },
-  'MCP Translator':  { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct',    apiKey: '' },
-  'Code Generator':  { provider: 'watsonx', model: 'ibm/granite-8b-code-instruct', apiKey: '' },
-  'Validator':       { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct',    apiKey: '' },
-  'Docs Generator':  { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct',    apiKey: '' },
+  'Input Parser':    { provider: 'watsonx', model: 'ibm/granite-4-h-small' },
+  'Schema Extractor':{ provider: 'watsonx', model: 'ibm/granite-4-h-small' },
+  'Endpoint Mapper': { provider: 'watsonx', model: 'ibm/granite-4-h-small' },
+  'Auth Analyzer':   { provider: 'watsonx', model: 'ibm/granite-4-h-small' },
+  'MCP Translator':  { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct' },
+  'Code Generator':  { provider: 'watsonx', model: 'ibm/granite-8b-code-instruct' },
+  'Validator':       { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct' },
+  'Docs Generator':  { provider: 'watsonx', model: 'ibm/granite-3-8b-instruct' },
 };
 
 export const PRESETS: Record<string, { provider: string; modelIndex: number }> = {
@@ -69,7 +68,7 @@ export const PRESETS: Record<string, { provider: string; modelIndex: number }> =
 };
 
 const STORAGE_KEY = 'automcp_agent_configs';
-const CONFIG_VERSION = '2.0'; // Increment when DEFAULT_CONFIGS structure changes
+const CONFIG_VERSION = '3.0';
 const VERSION_KEY = 'automcp_config_version';
 
 export function loadAgentConfigs(): AgentConfigs {
