@@ -182,6 +182,12 @@ class InputParserAgent(BaseAgent):
             provider_service=provider_service,
         )
 
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
+
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
         await self.send_update("started", None, 0.0, "Starting input parsing...", callback)
@@ -431,6 +437,12 @@ class SchemaExtractorAgent(BaseAgent):
             provider_service=provider_service,
         )
 
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
+
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
         await self.send_update("started", None, 0.0, "Starting schema extraction...", callback)
@@ -561,6 +573,12 @@ class EndpointMapperAgent(BaseAgent):
             provider_service=provider_service,
         )
 
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
+
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
         await self.send_update("started", None, 0.0, "Starting endpoint mapping...", callback)
@@ -603,6 +621,12 @@ class AuthAnalyzerAgent(BaseAgent):
             description="Analyzes and configures authentication flows",
             provider_service=provider_service,
         )
+
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
 
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
@@ -682,6 +706,12 @@ class CodeGeneratorAgent(BaseAgent):
             description="Generates production-ready MCP server code",
             provider_service=provider_service,
         )
+
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
 
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
@@ -1196,6 +1226,12 @@ class MCPTranslatorAgent(BaseAgent):
             provider_service=provider_service,
         )
 
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
+
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
         await self.send_update("started", None, 0.0, "Translating to MCP schema...", callback)
@@ -1282,6 +1318,12 @@ class ValidatorAgent(BaseAgent):
             description="Reviews generated code for syntax errors and MCP compliance",
             provider_service=provider_service,
         )
+
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
 
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
@@ -1381,6 +1423,12 @@ class DocsGeneratorAgent(BaseAgent):
             description="Generates README.md with setup instructions and tool documentation",
             provider_service=provider_service,
         )
+
+    async def __call__(self, state: dict) -> dict:
+        self._current_cfg = state.get("agent_configs", {}).get(self.name, {})
+        input_data = dict(state)
+        input_data["_agent_config"] = self._current_cfg
+        return await self.process(input_data, state.get("_callback"))
 
     async def process(self, input_data: Dict[str, Any], callback: Optional[Callable] = None) -> Dict[str, Any]:
         self._current_cfg = input_data.get("_agent_config", {})
