@@ -108,39 +108,21 @@ class BaseAgent:
         return None
 
     async def _call_llm(self, prompt: str, max_tokens: int = 2000) -> Optional[str]:
-        """Call LLM via LangChain. Falls back to legacy provider_service if no LangChain model."""
+        """Call LLM via LangChain. Returns None if no model configured (triggers deterministic fallback)."""
         llm = self._get_llm(max_tokens)
-        if llm is not None:
-            try:
-                from langchain_core.messages import HumanMessage
-                logger.info(f"[LLM] {self.name} → {type(llm).__name__}")
-                response = await llm.ainvoke([HumanMessage(content=prompt)])
-                result = response.content
-                if isinstance(result, str) and result:
-                    logger.info(f"[LLM] {self.name} got {len(result)} chars")
-                    return result
-                logger.warning(f"[LLM] {self.name} empty response")
-            except Exception as e:
-                logger.warning(f"[LLM] {self.name} LangChain call failed: {e}")
-            return None
-
-        # Legacy fallback: raw provider_service
-        if not self.provider_service:
-            return None
-        provider = self.provider_service.get_provider()
-        if not provider:
+        if llm is None:
             return None
         try:
-            model_id = self._current_cfg.get("model") or None
-            kwargs: Dict[str, Any] = {"max_tokens": max_tokens}
-            if model_id:
-                kwargs["model_id"] = model_id
-            logger.info(f"[LLM] {self.name} legacy {provider.__class__.__name__} model={model_id or 'default'}")
-            result = await asyncio.to_thread(provider.generate, prompt, **kwargs)
-            if isinstance(result, str) and result and not result.startswith("Error:"):
+            from langchain_core.messages import HumanMessage
+            logger.info(f"[LLM] {self.name} → {type(llm).__name__}")
+            response = await llm.ainvoke([HumanMessage(content=prompt)])
+            result = response.content
+            if isinstance(result, str) and result:
+                logger.info(f"[LLM] {self.name} got {len(result)} chars")
                 return result
+            logger.warning(f"[LLM] {self.name} empty response")
         except Exception as e:
-            logger.warning(f"[LLM] {self.name} legacy call failed: {e}")
+            logger.warning(f"[LLM] {self.name} LangChain call failed: {e}")
         return None
 
     def _extract_json(self, text: str) -> Any:
