@@ -46,8 +46,85 @@ class BaseAgent:
         if callback:
             await callback(AgentMessage(self.name, status, data, progress, message))
 
+    def _env_key(self, provider: str) -> str:
+        import os
+        mapping = {
+            "openai":     "OPENAI_API_KEY",
+            "anthropic":  "ANTHROPIC_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
+            "watsonx":    "WATSONX_API_KEY",
+        }
+        return os.environ.get(mapping.get(provider, ""), "") or ""
+
+    def _get_llm(self, max_tokens: int = 2000):
+        """Build a LangChain BaseChatModel from current agent config. Returns None if unavailable."""
+        import os
+        provider = self._current_cfg.get("provider", "")
+        model    = self._current_cfg.get("model", "")
+        api_key  = self._current_cfg.get("apiKey", "") or self._env_key(provider)
+
+        try:
+            if provider == "openai":
+                from langchain_openai import ChatOpenAI
+                return ChatOpenAI(
+                    model=model or "gpt-4o",
+                    api_key=api_key or None,
+                    max_tokens=max_tokens,
+                )
+            if provider == "anthropic":
+                from langchain_anthropic import ChatAnthropic
+                return ChatAnthropic(
+                    model=model or "claude-sonnet-4-6",
+                    api_key=api_key or None,
+                    max_tokens=max_tokens,
+                )
+            if provider == "openrouter":
+                from langchain_openai import ChatOpenAI
+                return ChatOpenAI(
+                    model=model or "meta-llama/llama-3.3-70b-instruct:free",
+                    api_key=api_key or None,
+                    base_url="https://openrouter.ai/api/v1",
+                    default_headers={
+                        "HTTP-Referer": "https://automcp.dev",
+                        "X-Title": "AutoMCP",
+                    },
+                    max_tokens=max_tokens,
+                )
+            if provider == "watsonx":
+                project_id  = os.environ.get("WATSONX_PROJECT_ID", "")
+                watsonx_url = os.environ.get("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
+                if not api_key or not project_id:
+                    return None
+                from langchain_ibm import ChatWatsonx
+                return ChatWatsonx(
+                    model_id=model or "ibm/granite-3-8b-instruct",
+                    url=watsonx_url,
+                    project_id=project_id,
+                    apikey=api_key,
+                    params={"max_new_tokens": max_tokens},
+                )
+        except Exception as e:
+            logger.warning(f"[{self.name}] _get_llm failed for provider={provider!r}: {e}")
+        return None
+
     async def _call_llm(self, prompt: str, max_tokens: int = 2000) -> Optional[str]:
-        """Call the configured LLM. Returns None when unavailable or on error."""
+        """Call LLM via LangChain. Falls back to legacy provider_service if no LangChain model."""
+        llm = self._get_llm(max_tokens)
+        if llm is not None:
+            try:
+                from langchain_core.messages import HumanMessage
+                logger.info(f"[LLM] {self.name} → {type(llm).__name__}")
+                response = await llm.ainvoke([HumanMessage(content=prompt)])
+                result = response.content
+                if isinstance(result, str) and result:
+                    logger.info(f"[LLM] {self.name} got {len(result)} chars")
+                    return result
+                logger.warning(f"[LLM] {self.name} empty response")
+            except Exception as e:
+                logger.warning(f"[LLM] {self.name} LangChain call failed: {e}")
+            return None
+
+        # Legacy fallback: raw provider_service
         if not self.provider_service:
             return None
         provider = self.provider_service.get_provider()
@@ -58,14 +135,12 @@ class BaseAgent:
             kwargs: Dict[str, Any] = {"max_tokens": max_tokens}
             if model_id:
                 kwargs["model_id"] = model_id
-            logger.info(f"[LLM] {self.name} calling {provider.__class__.__name__} model={model_id or 'default'} max_tokens={max_tokens}")
+            logger.info(f"[LLM] {self.name} legacy {provider.__class__.__name__} model={model_id or 'default'}")
             result = await asyncio.to_thread(provider.generate, prompt, **kwargs)
             if isinstance(result, str) and result and not result.startswith("Error:"):
-                logger.info(f"[LLM] {self.name} got {len(result)} chars")
                 return result
-            logger.warning(f"[LLM] {self.name} got empty/error response: {result!r:.100}")
         except Exception as e:
-            logger.warning(f"LLM call failed in {self.name}: {e}")
+            logger.warning(f"[LLM] {self.name} legacy call failed: {e}")
         return None
 
     def _extract_json(self, text: str) -> Any:
