@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from dotenv import set_key
 
 router = APIRouter(prefix="/keys", tags=["keys"])
@@ -24,6 +24,13 @@ class SaveKeyRequest(BaseModel):
     key: str
     project_id: str = ""  # watsonx only
     url: str = ""         # watsonx only
+
+    @field_validator("key")
+    @classmethod
+    def key_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("key must not be empty")
+        return v
 
 
 @router.post("")

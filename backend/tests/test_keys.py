@@ -29,7 +29,7 @@ async def test_post_key_sets_env_var(tmp_path):
     env_file = tmp_path / ".env"
     env_file.write_text("")
     with patch("app.api.simple.keys.ENV_PATH", str(env_file)):
-        with patch.dict(os.environ, {}, clear=False):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=False):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 response = await client.post(
                     "/api/simple/keys",
