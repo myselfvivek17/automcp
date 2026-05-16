@@ -13,6 +13,7 @@ import {
   loadAgentConfigs,
   saveAgentConfigs,
 } from '@/lib/agent-config';
+import { saveProviderKey, getProviderStatus, ProviderStatus, SaveKeyPayload } from '@/lib/api';
 
 const AGENT_ORDER: AgentName[] = [
   'Input Parser',
@@ -44,9 +45,19 @@ const SELECT_CLS = "field";
 export default function SettingsPage() {
   const [configs, setConfigs] = useState<AgentConfigs>(DEFAULT_CONFIGS);
   const [saved, setSaved] = useState(false);
+  const [providerStatus, setProviderStatus] = useState<ProviderStatus>({
+    openai: false, anthropic: false, google: false, openrouter: false, watsonx: false,
+  });
+  const [keyInputs, setKeyInputs] = useState<Record<string, string>>({});
+  const [keySaving, setKeySaving] = useState<Record<string, boolean>>({});
+  const [keySaved, setKeySaved] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setConfigs(loadAgentConfigs());
+  }, []);
+
+  useEffect(() => {
+    getProviderStatus().then(setProviderStatus).catch(() => {});
   }, []);
 
   const updateAgent = (name: AgentName, field: keyof AgentConfig, value: string) => {
@@ -85,6 +96,28 @@ export default function SettingsPage() {
     saveAgentConfigs(defaults);
   };
 
+  const handleSaveKey = async (provider: string) => {
+    const key = keyInputs[provider] ?? '';
+    if (!key) return;
+    setKeySaving(prev => ({ ...prev, [provider]: true }));
+    try {
+      const payload: SaveKeyPayload = { provider, key };
+      if (provider === 'watsonx') {
+        payload.project_id = keyInputs['watsonx_project_id'] ?? '';
+        payload.url = keyInputs['watsonx_url'] ?? '';
+      }
+      await saveProviderKey(payload);
+      const status = await getProviderStatus();
+      setProviderStatus(status);
+      setKeySaved(prev => ({ ...prev, [provider]: true }));
+      setTimeout(() => setKeySaved(prev => ({ ...prev, [provider]: false })), 2000);
+    } catch {
+      alert(`Failed to save ${provider} key`);
+    } finally {
+      setKeySaving(prev => ({ ...prev, [provider]: false }));
+    }
+  };
+
   return (
     <div style={{ background: 'var(--paper)', color: 'var(--ink)', padding: '40px 28px', minHeight: '100vh' }}>
       <div style={{ maxWidth: 896, margin: '0 auto' }}>
@@ -120,6 +153,75 @@ export default function SettingsPage() {
               </button>
             ))}
             <span style={{ fontSize: '11px', color: 'var(--ink-mute)', alignSelf: 'center', marginLeft: 8 }}>All Watsonx.ai Granite models</span>
+          </div>
+        </div>
+
+        {/* Provider Keys */}
+        <div className="surface" style={{ padding: 20, marginBottom: 24 }}>
+          <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'var(--sans)' }}>
+            Provider API Keys
+          </p>
+          <p style={{ margin: '0 0 16px', fontSize: '12px', color: 'var(--ink-mute)', fontFamily: 'var(--sans)' }}>
+            Keys are stored in the backend .env file — never in your browser.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column' as any, gap: 14 }}>
+            {(['openrouter', 'openai', 'anthropic', 'watsonx'] as const).map(prov => (
+              <div key={prov}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                    background: providerStatus[prov] ? 'var(--ok)' : 'var(--ink-mute)',
+                  }} />
+                  <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ink-2)', fontFamily: 'var(--sans)' }}>
+                    {prov === 'openrouter' ? 'OpenRouter' : prov === 'openai' ? 'OpenAI' : prov === 'anthropic' ? 'Anthropic' : 'IBM Watsonx.ai'}
+                    {providerStatus[prov] && <span style={{ color: 'var(--ok)', marginLeft: 6, fontWeight: 400 }}> configured</span>}
+                  </label>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="password"
+                    value={keyInputs[prov] ?? ''}
+                    onChange={e => setKeyInputs(prev => ({ ...prev, [prov]: e.target.value }))}
+                    placeholder={prov === 'openrouter' ? 'sk-or-...' : prov === 'openai' ? 'sk-...' : prov === 'anthropic' ? 'sk-ant-...' : 'IBM API key'}
+                    className="field"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    onClick={() => handleSaveKey(prov)}
+                    className="btn btn-sm"
+                    disabled={keySaving[prov] || !keyInputs[prov]}
+                    style={{
+                      flexShrink: 0,
+                      background: keySaved[prov] ? 'var(--ok)' : undefined,
+                      color: keySaved[prov] ? 'var(--paper)' : undefined,
+                      borderColor: keySaved[prov] ? 'var(--ok)' : undefined,
+                    }}
+                  >
+                    {keySaved[prov] ? '✓ Saved' : keySaving[prov] ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+                {prov === 'watsonx' && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    <input
+                      type="text"
+                      value={keyInputs['watsonx_project_id'] ?? ''}
+                      onChange={e => setKeyInputs(prev => ({ ...prev, watsonx_project_id: e.target.value }))}
+                      placeholder="Project ID (required)"
+                      className="field"
+                      style={{ flex: 1 }}
+                    />
+                    <input
+                      type="text"
+                      value={keyInputs['watsonx_url'] ?? ''}
+                      onChange={e => setKeyInputs(prev => ({ ...prev, watsonx_url: e.target.value }))}
+                      placeholder="URL (optional)"
+                      className="field"
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -173,19 +275,6 @@ export default function SettingsPage() {
                       ))}
                     </select>
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 500, color: 'var(--ink-3)', marginBottom: 6, fontFamily: 'var(--sans)' }}>
-                      API Key Override{' '}
-                      <span style={{ fontWeight: 'normal', color: 'var(--ink-mute)' }}>(optional — falls back to global key)</span>
-                    </label>
-                    <input
-                      type="password"
-                      value={config.apiKey}
-                      onChange={e => updateAgent(name, 'apiKey', e.target.value)}
-                      placeholder="Leave empty to use the global API key"
-                      className={SELECT_CLS}
-                    />
-                  </div>
                 </div>
               </div>
             );
@@ -215,7 +304,7 @@ export default function SettingsPage() {
         </div>
 
         <p style={{ fontSize: '11px', color: 'var(--ink-mute)', textAlign: 'center' as any, marginTop: 16, fontFamily: 'var(--sans)' }}>
-          Configuration is saved locally in your browser and sent to the pipeline on each generation.
+          Agent provider/model settings are saved in your browser. API keys are stored in the backend .env file.
         </p>
       </div>
     </div>
